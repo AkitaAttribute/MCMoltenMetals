@@ -35,11 +35,11 @@ import net.neoforged.fml.loading.FMLPaths;
 
 public final class MetalDiscovery {
     /*
-     * Only an ingot convention establishes a molten-metal identity. Raw materials and ores
-     * can contribute source artwork to an already-named material, but they do not become
-     * molten metals by themselves (for example bauxite must not become Molten Bauxite).
+     * An ingot convention establishes the molten-metal identity/name. Matching raw-material
+     * artwork is preferred for palette generation, then ingot artwork, then ore artwork.
+     * Raw materials and ores never establish standalone molten-metal identities by themselves.
      */
-    private static final String DISCOVERY_VERSION = "material-discovery-v3-ingot-identities";
+    private static final String DISCOVERY_VERSION = "material-discovery-v4-raw-palette-first";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CACHE_PATH = FMLPaths.CONFIGDIR.get()
             .resolve(MCMoltenMetals.MOD_ID)
@@ -82,10 +82,10 @@ public final class MetalDiscovery {
             String itemName = fileName(itemId.getPath());
             if (itemName.endsWith("_ingot") && itemName.length() > "_ingot".length()) {
                 String material = normalizeMaterial(itemName.substring(0, itemName.length() - "_ingot".length()));
-                candidate(candidates, material).markIngot().addSource(itemId, 0);
+                candidate(candidates, material).markIngot().addSource(itemId, 20);
             } else if (itemName.startsWith("raw_") && itemName.length() > "raw_".length()) {
                 String material = normalizeMaterial(itemName.substring("raw_".length()));
-                candidate(candidates, material).addSource(itemId, 20);
+                candidate(candidates, material).addSource(itemId, 0);
             }
         }
     }
@@ -152,9 +152,9 @@ public final class MetalDiscovery {
             int priority;
             if ("ingots".equals(category)) {
                 candidate.markIngot();
-                priority = 0;
-            } else if ("raw_materials".equals(category)) {
                 priority = 20;
+            } else if ("raw_materials".equals(category)) {
+                priority = 0;
             } else {
                 priority = 40;
             }
@@ -178,13 +178,13 @@ public final class MetalDiscovery {
             String material = normalizeMaterial(itemName.substring(0, itemName.length() - "_ingot".length()));
             ResourceLocation itemId = safeLocation(namespace, itemPath);
             if (!material.isEmpty() && itemId != null) {
-                candidate(candidates, material).markIngot().addSource(itemId, 10);
+                candidate(candidates, material).markIngot().addSource(itemId, 30);
             }
         } else if (itemName.startsWith("raw_") && itemName.length() > "raw_".length()) {
             String material = normalizeMaterial(itemName.substring("raw_".length()));
             ResourceLocation itemId = safeLocation(namespace, itemPath);
             if (!material.isEmpty() && itemId != null) {
-                candidate(candidates, material).addSource(itemId, 30);
+                candidate(candidates, material).addSource(itemId, 10);
             }
         }
     }
