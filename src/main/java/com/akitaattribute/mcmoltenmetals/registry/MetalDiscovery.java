@@ -35,11 +35,12 @@ import net.neoforged.fml.loading.FMLPaths;
 
 public final class MetalDiscovery {
     /*
-     * An ingot convention establishes the molten-metal identity/name. Matching raw-material
-     * artwork is preferred for palette generation, then ingot artwork, then ore artwork.
-     * Raw materials and ores never establish standalone molten-metal identities by themselves.
+     * An ingot convention establishes the molten-metal identity/name. Palette artwork prefers
+     * a matching raw_<metal> item, then a matching <metal>_scrap item, then the ingot, then ore
+     * artwork. This lets cases such as Netherite use Netherite Scrap for color without allowing
+     * raw materials, scraps, or ores to create standalone molten-metal identities.
      */
-    private static final String DISCOVERY_VERSION = "material-discovery-v4-raw-palette-first";
+    private static final String DISCOVERY_VERSION = "material-discovery-v5-raw-and-scrap-palette";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CACHE_PATH = FMLPaths.CONFIGDIR.get()
             .resolve(MCMoltenMetals.MOD_ID)
@@ -86,6 +87,9 @@ public final class MetalDiscovery {
             } else if (itemName.startsWith("raw_") && itemName.length() > "raw_".length()) {
                 String material = normalizeMaterial(itemName.substring("raw_".length()));
                 candidate(candidates, material).addSource(itemId, 0);
+            } else if (itemName.endsWith("_scrap") && itemName.length() > "_scrap".length()) {
+                String material = normalizeMaterial(itemName.substring(0, itemName.length() - "_scrap".length()));
+                candidate(candidates, material).addSource(itemId, 5);
             }
         }
     }
@@ -185,6 +189,12 @@ public final class MetalDiscovery {
             ResourceLocation itemId = safeLocation(namespace, itemPath);
             if (!material.isEmpty() && itemId != null) {
                 candidate(candidates, material).addSource(itemId, 10);
+            }
+        } else if (itemName.endsWith("_scrap") && itemName.length() > "_scrap".length()) {
+            String material = normalizeMaterial(itemName.substring(0, itemName.length() - "_scrap".length()));
+            ResourceLocation itemId = safeLocation(namespace, itemPath);
+            if (!material.isEmpty() && itemId != null) {
+                candidate(candidates, material).addSource(itemId, 15);
             }
         }
     }
