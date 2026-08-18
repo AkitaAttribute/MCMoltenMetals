@@ -3,6 +3,9 @@ package com.akitaattribute.mcmoltenmetals.client;
 import com.akitaattribute.mcmoltenmetals.MCMoltenMetals;
 import com.akitaattribute.mcmoltenmetals.registry.MetalDefinition;
 import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -21,6 +24,7 @@ import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.event.AddPackFindersEvent;
 
 public final class GeneratedTexturePack {
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String PACK_META = """
             {
               "pack": {
@@ -49,6 +53,7 @@ public final class GeneratedTexturePack {
         try {
             ensureSkeleton();
             writeDynamicModels();
+            writeDynamicLanguage();
         } catch (IOException exception) {
             MCMoltenMetals.LOGGER.error("Could not create generated client resource pack", exception);
             return;
@@ -154,6 +159,24 @@ public final class GeneratedTexturePack {
         deleteUnexpectedJson(blockstates, expectedBlockstates);
         deleteUnexpectedJson(blockModels, expectedBlockModels);
         deleteUnexpectedJson(itemModels, expectedItemModels);
+    }
+
+    private static void writeDynamicLanguage() throws IOException {
+        JsonObject language = new JsonObject();
+        for (MetalDefinition definition : MoltenMetalRegistry.definitions()) {
+            String molten = definition.moltenName();
+            String display = "Molten " + definition.displayName();
+
+            // FluidType uses this description key. The block/item keys keep probes, JEI,
+            // inventory screens, and other integrations on the same human-readable naming.
+            language.addProperty("fluid." + MCMoltenMetals.MOD_ID + "." + molten, display);
+            language.addProperty("block." + MCMoltenMetals.MOD_ID + "." + molten, display);
+            language.addProperty("item." + MCMoltenMetals.MOD_ID + "." + molten + "_bucket", display + " Bucket");
+        }
+
+        Path languagePath = PACK_ROOT.resolve("assets").resolve(MCMoltenMetals.MOD_ID)
+                .resolve("lang/en_us.json");
+        writeIfChanged(languagePath, GSON.toJson(language) + "\n");
     }
 
     private static void deleteUnexpectedJson(Path directory, Set<String> expected) throws IOException {
