@@ -4,6 +4,7 @@ import com.akitaattribute.mcmoltenmetals.MCMoltenMetals;
 import com.akitaattribute.mcmoltenmetals.registry.MetalDefinition;
 import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
 import java.util.function.Consumer;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.level.pathfinder.PathType;
@@ -30,6 +31,11 @@ public final class MoltenFluidType extends FluidType {
                 .sound(SoundActions.BUCKET_FILL, SoundEvents.BUCKET_FILL_LAVA)
                 .sound(SoundActions.BUCKET_EMPTY, SoundEvents.BUCKET_EMPTY_LAVA));
         this.definition = metal.definition();
+    }
+
+    @Override
+    public Component getDescription() {
+        return Component.literal("Molten " + definition.displayName());
     }
 
     @Override

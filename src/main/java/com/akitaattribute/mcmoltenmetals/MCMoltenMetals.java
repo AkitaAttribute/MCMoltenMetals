@@ -1,7 +1,9 @@
 package com.akitaattribute.mcmoltenmetals;
 
 import com.akitaattribute.mcmoltenmetals.command.MoltenMetalCommand;
+import com.akitaattribute.mcmoltenmetals.registry.MetalDiscovery;
 import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
+import com.akitaattribute.mcmoltenmetals.resource.GeneratedDataPack;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.bus.api.IEventBus;
@@ -18,7 +20,10 @@ public final class MCMoltenMetals {
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     public MCMoltenMetals(IEventBus modBus, ModContainer modContainer) {
-        MoltenMetalRegistry.register(modBus);
+        var definitions = MetalDiscovery.loadOrDiscover();
+        MoltenMetalRegistry.register(modBus, definitions);
+
+        modBus.addListener(GeneratedDataPack::register);
         modBus.addListener(this::addCreativeTabItems);
         NeoForge.EVENT_BUS.addListener(MoltenMetalCommand::register);
     }

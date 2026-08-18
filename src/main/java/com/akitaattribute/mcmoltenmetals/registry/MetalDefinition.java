@@ -1,38 +1,20 @@
 package com.akitaattribute.mcmoltenmetals.registry;
 
 import com.akitaattribute.mcmoltenmetals.MCMoltenMetals;
+import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 
-public enum MetalDefinition {
-    IRON("iron", "Iron", minecraftTexture("textures/item/iron_ingot.png")),
-    COPPER("copper", "Copper", minecraftTexture("textures/item/copper_ingot.png")),
-    GOLD("gold", "Gold", minecraftTexture("textures/item/gold_ingot.png")),
-    NETHERITE("netherite", "Netherite", minecraftTexture("textures/item/netherite_ingot.png"));
-
-    private final String id;
-    private final String displayName;
-    private final ResourceLocation sourceTexture;
-
-    MetalDefinition(String id, String displayName, ResourceLocation sourceTexture) {
-        this.id = id;
-        this.displayName = displayName;
-        this.sourceTexture = sourceTexture;
-    }
-
-    public String id() {
-        return id;
-    }
-
-    public String displayName() {
-        return displayName;
+public record MetalDefinition(String id, String displayName, List<ResourceLocation> sourceItems) {
+    public MetalDefinition {
+        sourceItems = List.copyOf(sourceItems);
     }
 
     public String moltenName() {
         return "molten_" + id;
     }
 
-    public ResourceLocation sourceTexture() {
-        return sourceTexture;
+    public String flowingName() {
+        return "flowing_" + moltenName();
     }
 
     public ResourceLocation stillTexture() {
@@ -43,7 +25,7 @@ public enum MetalDefinition {
         return MCMoltenMetals.id("fluid/" + moltenName() + "_flow");
     }
 
-    private static ResourceLocation minecraftTexture(String path) {
-        return ResourceLocation.fromNamespaceAndPath("minecraft", path);
+    public ResourceLocation bucketTexture() {
+        return MCMoltenMetals.id("item/" + moltenName() + "_bucket");
     }
 }
