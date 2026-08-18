@@ -4,9 +4,9 @@ import net.minecraft.world.entity.Entity;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
 /**
- * Vanilla's entity lava damage path is keyed off the minecraft:lava fluid tag rather than
+ * Vanilla's entity lava contact path is keyed off the minecraft:lava fluid tag rather than
  * the LavaFluid class itself. Molten metals are also injected into that tag by the generated
- * data pack, but this FluidType check keeps vanilla lava damage semantics intact even if a
+ * data pack, but this FluidType check keeps vanilla lava contact semantics intact even if a
  * server/resource reload has not rebound that generated tag yet.
  */
 public final class MoltenEntityEvents {
@@ -16,7 +16,7 @@ public final class MoltenEntityEvents {
     public static void onEntityTick(EntityTickEvent.Post event) {
         Entity entity = event.getEntity();
 
-        // If vanilla already recognizes it as lava, baseTick has already called lavaHurt().
+        // If vanilla already recognizes it as lava, baseTick already handled lava contact.
         if (entity.isInLava()) {
             return;
         }
@@ -28,6 +28,8 @@ public final class MoltenEntityEvents {
         if (inMoltenMetal) {
             // Use Minecraft's own lava damage/fire implementation rather than duplicating values.
             entity.lavaHurt();
+            // Match vanilla baseTick's reduction while an entity is in lava.
+            entity.fallDistance *= 0.5F;
         }
     }
 }
