@@ -72,7 +72,7 @@ public final class GeneratedTexturePack {
     public static Path texturePath(MetalDefinition definition, boolean flowing) {
         String suffix = flowing ? "_flow.png" : "_still.png";
         return PACK_ROOT.resolve("assets").resolve(MCMoltenMetals.MOD_ID)
-                .resolve("textures/fluid").resolve(definition.moltenName() + suffix);
+                .resolve("textures/block").resolve(definition.moltenName() + suffix);
     }
 
     public static Path bucketTexturePath(MetalDefinition definition) {
@@ -99,10 +99,11 @@ public final class GeneratedTexturePack {
                 .map(MetalDefinition::id)
                 .collect(java.util.stream.Collectors.toSet());
         cleanupMatching(PACK_ROOT.resolve(".mcmoltenmetals"), active, ".sha256", "");
-        cleanupMatching(PACK_ROOT.resolve("assets").resolve(MCMoltenMetals.MOD_ID).resolve("textures/fluid"),
+        cleanupMatching(PACK_ROOT.resolve("assets").resolve(MCMoltenMetals.MOD_ID).resolve("textures/block"),
                 active, ".png", "molten_");
         cleanupMatching(PACK_ROOT.resolve("assets").resolve(MCMoltenMetals.MOD_ID).resolve("textures/item"),
                 active, "_bucket.png", "molten_");
+        deleteDirectoryContents(PACK_ROOT.resolve("assets").resolve(MCMoltenMetals.MOD_ID).resolve("textures/fluid"));
     }
 
     private static void writeDynamicModels() throws IOException {
@@ -136,7 +137,7 @@ public final class GeneratedTexturePack {
             writeIfChanged(blockModels.resolve(blockstateName), """
                     {
                       "textures": {
-                        "particle": "mcmoltenmetals:fluid/%s_still"
+                        "particle": "mcmoltenmetals:block/%s_still"
                       }
                     }
                     """.formatted(molten));
@@ -191,6 +192,20 @@ public final class GeneratedTexturePack {
                 }
             }
         }
+    }
+
+    private static void deleteDirectoryContents(Path directory) throws IOException {
+        if (!Files.isDirectory(directory)) {
+            return;
+        }
+        try (var stream = Files.walk(directory)) {
+            for (Path path : stream.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                if (!path.equals(directory)) {
+                    Files.deleteIfExists(path);
+                }
+            }
+        }
+        Files.deleteIfExists(directory);
     }
 
     private static void writeIfChanged(Path path, String content) throws IOException {
