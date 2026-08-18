@@ -1,0 +1,14 @@
+{
+  "fluid.mcmoltenmetals.molten_iron": "Molten Iron",
+  "fluid.mcmoltenmetals.molten_copper": "Molten Copper",
+  "fluid.mcmoltenmetals.molten_gold": "Molten Gold",
+  "fluid.mcmoltenmetals.molten_netherite": "Molten Netherite",
+  "block.mcmoltenmetals.molten_iron": "Molten Iron",
+  "block.mcmoltenmetals.molten_copper": "Molten Copper",
+  "block.mcmoltenmetals.molten_gold": "Molten Gold",
+  "block.mcmoltenmetals.molten_netherite": "Molten Netherite",
+  "item.mcmoltenmetals.molten_iron_bucket": "Molten Iron Bucket",
+  "item.mcmoltenmetals.molten_copper_bucket": "Molten Copper Bucket",
+  "item.mcmoltenmetals.molten_gold_bucket": "Molten Gold Bucket",
+  "item.mcmoltenmetals.molten_netherite_bucket": "Molten Netherite Bucket"
+}
