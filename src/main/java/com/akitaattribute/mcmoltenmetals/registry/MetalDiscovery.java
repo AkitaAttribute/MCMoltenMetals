@@ -35,12 +35,12 @@ import net.neoforged.fml.loading.FMLPaths;
 
 public final class MetalDiscovery {
     /*
-     * An ingot convention establishes the molten-metal identity/name. Palette artwork prefers
-     * a matching raw_<metal> item, then a matching <metal>_scrap item, then the ingot, then ore
-     * artwork. This lets cases such as Netherite use Netherite Scrap for color without allowing
-     * raw materials, scraps, or ores to create standalone molten-metal identities.
+     * An ingot convention establishes the molten-metal identity/name, and matching ingot
+     * artwork is also the preferred palette source. Raw materials, scraps, and ores remain
+     * fallback artwork sources only when usable ingot artwork cannot be resolved; they never
+     * establish standalone molten-metal identities.
      */
-    private static final String DISCOVERY_VERSION = "material-discovery-v5-raw-and-scrap-palette";
+    private static final String DISCOVERY_VERSION = "material-discovery-v6-ingot-palette";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CACHE_PATH = FMLPaths.CONFIGDIR.get()
             .resolve(MCMoltenMetals.MOD_ID)
@@ -83,13 +83,13 @@ public final class MetalDiscovery {
             String itemName = fileName(itemId.getPath());
             if (itemName.endsWith("_ingot") && itemName.length() > "_ingot".length()) {
                 String material = normalizeMaterial(itemName.substring(0, itemName.length() - "_ingot".length()));
-                candidate(candidates, material).markIngot().addSource(itemId, 20);
+                candidate(candidates, material).markIngot().addSource(itemId, 0);
             } else if (itemName.startsWith("raw_") && itemName.length() > "raw_".length()) {
                 String material = normalizeMaterial(itemName.substring("raw_".length()));
-                candidate(candidates, material).addSource(itemId, 0);
+                candidate(candidates, material).addSource(itemId, 20);
             } else if (itemName.endsWith("_scrap") && itemName.length() > "_scrap".length()) {
                 String material = normalizeMaterial(itemName.substring(0, itemName.length() - "_scrap".length()));
-                candidate(candidates, material).addSource(itemId, 5);
+                candidate(candidates, material).addSource(itemId, 30);
             }
         }
     }
@@ -156,9 +156,9 @@ public final class MetalDiscovery {
             int priority;
             if ("ingots".equals(category)) {
                 candidate.markIngot();
-                priority = 20;
-            } else if ("raw_materials".equals(category)) {
                 priority = 0;
+            } else if ("raw_materials".equals(category)) {
+                priority = 20;
             } else {
                 priority = 40;
             }
@@ -182,19 +182,19 @@ public final class MetalDiscovery {
             String material = normalizeMaterial(itemName.substring(0, itemName.length() - "_ingot".length()));
             ResourceLocation itemId = safeLocation(namespace, itemPath);
             if (!material.isEmpty() && itemId != null) {
-                candidate(candidates, material).markIngot().addSource(itemId, 30);
+                candidate(candidates, material).markIngot().addSource(itemId, 10);
             }
         } else if (itemName.startsWith("raw_") && itemName.length() > "raw_".length()) {
             String material = normalizeMaterial(itemName.substring("raw_".length()));
             ResourceLocation itemId = safeLocation(namespace, itemPath);
             if (!material.isEmpty() && itemId != null) {
-                candidate(candidates, material).addSource(itemId, 10);
+                candidate(candidates, material).addSource(itemId, 30);
             }
         } else if (itemName.endsWith("_scrap") && itemName.length() > "_scrap".length()) {
             String material = normalizeMaterial(itemName.substring(0, itemName.length() - "_scrap".length()));
             ResourceLocation itemId = safeLocation(namespace, itemPath);
             if (!material.isEmpty() && itemId != null) {
-                candidate(candidates, material).addSource(itemId, 15);
+                candidate(candidates, material).addSource(itemId, 35);
             }
         }
     }
