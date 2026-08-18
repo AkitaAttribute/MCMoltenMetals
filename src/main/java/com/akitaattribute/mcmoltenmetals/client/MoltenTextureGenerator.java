@@ -29,7 +29,7 @@ import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 
 public final class MoltenTextureGenerator {
-    private static final String ALGORITHM_VERSION = "lava-palette-remap-v2-dynamic-buckets";
+    private static final String ALGORITHM_VERSION = "lava-palette-remap-v3-block-atlas";
     private static final int PALETTE_SIZE = 12;
     private static final AtomicBoolean RELOAD_REQUESTED = new AtomicBoolean(false);
 
@@ -396,20 +396,46 @@ public final class MoltenTextureGenerator {
         return HexFormat.of().formatHex(digest.digest());
     }
 
-    private static int alpha(int abgr) { return (abgr >>> 24) & 0xFF; }
-    private static int rgb(int abgr) { return (redAbgr(abgr) << 16) | (greenAbgr(abgr) << 8) | blueAbgr(abgr); }
-    private static int redAbgr(int abgr) { return abgr & 0xFF; }
-    private static int greenAbgr(int abgr) { return (abgr >>> 8) & 0xFF; }
-    private static int blueAbgr(int abgr) { return (abgr >>> 16) & 0xFF; }
-    private static int red(int rgb) { return (rgb >>> 16) & 0xFF; }
-    private static int green(int rgb) { return (rgb >>> 8) & 0xFF; }
-    private static int blue(int rgb) { return rgb & 0xFF; }
+    private static int alpha(int abgr) {
+        return (abgr >>> 24) & 0xFF;
+    }
+
+    private static int rgb(int abgr) {
+        return (redAbgr(abgr) << 16) | (greenAbgr(abgr) << 8) | blueAbgr(abgr);
+    }
+
+    private static int redAbgr(int abgr) {
+        return abgr & 0xFF;
+    }
+
+    private static int greenAbgr(int abgr) {
+        return (abgr >>> 8) & 0xFF;
+    }
+
+    private static int blueAbgr(int abgr) {
+        return (abgr >>> 16) & 0xFF;
+    }
+
+    private static int red(int rgb) {
+        return (rgb >>> 16) & 0xFF;
+    }
+
+    private static int green(int rgb) {
+        return (rgb >>> 8) & 0xFF;
+    }
+
+    private static int blue(int rgb) {
+        return rgb & 0xFF;
+    }
+
     private static int packAbgr(int alpha, int red, int green, int blue) {
         return (alpha << 24) | (blue << 16) | (green << 8) | red;
     }
+
     private static double luminance(int rgb) {
         return (0.2126 * red(rgb) + 0.7152 * green(rgb) + 0.0722 * blue(rgb)) / 255.0;
     }
+
     private static ResourceLocation minecraft(String path) {
         return ResourceLocation.fromNamespaceAndPath("minecraft", path);
     }
