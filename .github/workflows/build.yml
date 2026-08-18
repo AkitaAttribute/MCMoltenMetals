@@ -1,9 +1,6 @@
 name: Build
 on:
   push:
-    branches:
-      - main
-  pull_request:
 permissions:
   contents: read
 jobs:
@@ -13,7 +10,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -32,24 +28,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          base_ref="${GITHUB_BASE_REF:-}"
+          branch="${GITHUB_REF_NAME}"
+          default_branch="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
 
-          if [ -n "$base_ref" ]; then
-            git fetch --no-tags --prune --depth=1 origin "$base_ref"
-            base="origin/$base_ref"
-          else
-            default_branch="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
-            git fetch --no-tags --prune --depth=1 origin "$default_branch"
-            base="origin/$default_branch"
-          fi
-
-          merge_base="$(git merge-base HEAD "$base" || true)"
-          if [ -n "$merge_base" ]; then
-            branch_version="$(git rev-list --count "${merge_base}..HEAD")"
-          else
+          if [ "$branch" = "$default_branch" ]; then
             branch_version="$(git rev-list --count HEAD)"
+            base="$default_branch"
+          else
+            git fetch --no-tags --prune origin "$default_branch"
+            base="origin/$default_branch"
+            merge_base="$(git merge-base HEAD "$base" || true)"
+            if [ -n "$merge_base" ]; then
+              branch_version="$(git rev-list --count "${merge_base}..HEAD")"
+            else
+              branch_version="$(git rev-list --count HEAD)"
+            fi
           fi
+
           if [ -z "$branch_version" ] || [ "$branch_version" -lt 1 ]; then
             branch_version=1
           fi
