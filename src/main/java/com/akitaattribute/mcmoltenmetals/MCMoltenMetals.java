@@ -1,6 +1,7 @@
 package com.akitaattribute.mcmoltenmetals;
 
 import com.akitaattribute.mcmoltenmetals.command.MoltenMetalCommand;
+import com.akitaattribute.mcmoltenmetals.fluid.MoltenEntityEvents;
 import com.akitaattribute.mcmoltenmetals.registry.MetalDiscovery;
 import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
 import com.akitaattribute.mcmoltenmetals.resource.GeneratedDataPack;
@@ -26,6 +27,7 @@ public final class MCMoltenMetals {
         modBus.addListener(GeneratedDataPack::register);
         modBus.addListener(this::addCreativeTabItems);
         NeoForge.EVENT_BUS.addListener(MoltenMetalCommand::register);
+        NeoForge.EVENT_BUS.addListener(MoltenEntityEvents::onEntityTick);
     }
 
     public static ResourceLocation id(String path) {
