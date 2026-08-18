@@ -18,11 +18,11 @@ public record MetalDefinition(String id, String displayName, List<ResourceLocati
     }
 
     public ResourceLocation stillTexture() {
-        return MCMoltenMetals.id("fluid/" + moltenName() + "_still");
+        return MCMoltenMetals.id("block/" + moltenName() + "_still");
     }
 
     public ResourceLocation flowingTexture() {
-        return MCMoltenMetals.id("fluid/" + moltenName() + "_flow");
+        return MCMoltenMetals.id("block/" + moltenName() + "_flow");
     }
 
     public ResourceLocation bucketTexture() {
