@@ -77,9 +77,9 @@ public final class MoltenMetalRegistry {
         metal.source = FLUIDS.register(name, () -> new MoltenLavaFluid.Source(metal));
         metal.flowing = FLUIDS.register("flowing_" + name, () -> new MoltenLavaFluid.Flowing(metal));
         metal.block = BLOCKS.register(name,
-                () -> new LiquidBlock(metal.source, BlockBehaviour.Properties.ofFullCopy(Blocks.LAVA)));
+                () -> new LiquidBlock(metal.source.get(), BlockBehaviour.Properties.ofFullCopy(Blocks.LAVA)));
         metal.bucket = ITEMS.register(name + "_bucket",
-                () -> new BucketItem(metal.source,
+                () -> new BucketItem(metal.source.get(),
                         new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1)));
 
         return metal;
