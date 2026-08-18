@@ -34,7 +34,12 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
 
 public final class MetalDiscovery {
-    private static final String DISCOVERY_VERSION = "material-discovery-v2";
+    /*
+     * Only an ingot convention establishes a molten-metal identity. Raw materials and ores
+     * can contribute source artwork to an already-named material, but they do not become
+     * molten metals by themselves (for example bauxite must not become Molten Bauxite).
+     */
+    private static final String DISCOVERY_VERSION = "material-discovery-v3-ingot-identities";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CACHE_PATH = FMLPaths.CONFIGDIR.get()
             .resolve(MCMoltenMetals.MOD_ID)
@@ -63,7 +68,6 @@ public final class MetalDiscovery {
         List<MetalDefinition> definitions = candidates.values().stream()
                 .filter(Candidate::isUsableMetal)
                 .map(Candidate::toDefinition)
-                .filter(definition -> !definition.sourceItems().isEmpty())
                 .sorted(Comparator.comparing(MetalDefinition::id))
                 .toList();
 
@@ -75,14 +79,13 @@ public final class MetalDiscovery {
 
     private static void discoverAlreadyRegisteredItems(Map<String, Candidate> candidates) {
         for (ResourceLocation itemId : BuiltInRegistries.ITEM.keySet()) {
-            String path = itemId.getPath();
-            String fileName = fileName(path);
-            if (fileName.endsWith("_ingot") && fileName.length() > "_ingot".length()) {
-                String material = fileName.substring(0, fileName.length() - "_ingot".length());
+            String itemName = fileName(itemId.getPath());
+            if (itemName.endsWith("_ingot") && itemName.length() > "_ingot".length()) {
+                String material = normalizeMaterial(itemName.substring(0, itemName.length() - "_ingot".length()));
                 candidate(candidates, material).markIngot().addSource(itemId, 0);
-            } else if (fileName.startsWith("raw_") && fileName.length() > "raw_".length()) {
-                String material = fileName.substring("raw_".length());
-                candidate(candidates, material).markRaw().addSource(itemId, 20);
+            } else if (itemName.startsWith("raw_") && itemName.length() > "raw_".length()) {
+                String material = normalizeMaterial(itemName.substring("raw_".length()));
+                candidate(candidates, material).addSource(itemId, 20);
             }
         }
     }
@@ -106,14 +109,13 @@ public final class MetalDiscovery {
         try (Stream<Path> stream = Files.walk(root)) {
             stream.filter(Files::isRegularFile).forEach(file -> {
                 String relative = root.relativize(file).toString().replace('\\', '/');
-                Supplier<byte[]> bytes = () -> {
+                processResource(relative, () -> {
                     try {
                         return Files.readAllBytes(file);
                     } catch (IOException exception) {
                         return null;
                     }
-                };
-                processResource(relative, bytes, candidates);
+                }, candidates);
             });
         }
     }
@@ -126,8 +128,7 @@ public final class MetalDiscovery {
                 if (entry.isDirectory()) {
                     continue;
                 }
-                String relative = entry.getName();
-                processResource(relative, () -> {
+                processResource(entry.getName(), () -> {
                     try (InputStream input = zip.getInputStream(entry)) {
                         return input.readAllBytes();
                     } catch (IOException exception) {
@@ -149,19 +150,13 @@ public final class MetalDiscovery {
 
             Candidate candidate = candidate(candidates, material);
             int priority;
-            switch (category) {
-                case "ingots" -> {
-                    candidate.markIngot();
-                    priority = 0;
-                }
-                case "raw_materials" -> {
-                    candidate.markRaw();
-                    priority = 20;
-                }
-                default -> {
-                    candidate.markOre();
-                    priority = 40;
-                }
+            if ("ingots".equals(category)) {
+                candidate.markIngot();
+                priority = 0;
+            } else if ("raw_materials".equals(category)) {
+                priority = 20;
+            } else {
+                priority = 40;
             }
 
             byte[] content = bytes.get();
@@ -189,7 +184,7 @@ public final class MetalDiscovery {
             String material = normalizeMaterial(itemName.substring("raw_".length()));
             ResourceLocation itemId = safeLocation(namespace, itemPath);
             if (!material.isEmpty() && itemId != null) {
-                candidate(candidates, material).markRaw().addSource(itemId, 30);
+                candidate(candidates, material).addSource(itemId, 30);
             }
         }
     }
@@ -370,8 +365,6 @@ public final class MetalDiscovery {
         private final String id;
         private final Map<ResourceLocation, Integer> sourcePriorities = new LinkedHashMap<>();
         private boolean ingot;
-        private boolean raw;
-        private boolean ore;
 
         private Candidate(String id) {
             this.id = id;
@@ -382,23 +375,13 @@ public final class MetalDiscovery {
             return this;
         }
 
-        private Candidate markRaw() {
-            raw = true;
-            return this;
-        }
-
-        private Candidate markOre() {
-            ore = true;
-            return this;
-        }
-
         private Candidate addSource(ResourceLocation source, int priority) {
             sourcePriorities.merge(source, priority, Math::min);
             return this;
         }
 
         private boolean isUsableMetal() {
-            return !id.isEmpty() && (ingot || raw) && !sourcePriorities.isEmpty();
+            return !id.isEmpty() && ingot && !sourcePriorities.isEmpty();
         }
 
         private MetalDefinition toDefinition() {
