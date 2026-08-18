@@ -1,6 +1,12 @@
 package com.akitaattribute.mcmoltenmetals.fluid;
 
+import com.akitaattribute.mcmoltenmetals.MCMoltenMetals;
+import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.Entity;
+import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
 /**
@@ -30,6 +36,28 @@ public final class MoltenEntityEvents {
             entity.lavaHurt();
             // Match vanilla baseTick's reduction while an entity is in lava.
             entity.fallDistance *= 0.5F;
+        }
+    }
+
+    public static void onTagsUpdated(TagsUpdatedEvent event) {
+        if (!event.shouldUpdateStaticData()) {
+            return;
+        }
+
+        List<String> missing = new ArrayList<>();
+        for (MoltenMetalRegistry.MoltenMetal metal : MoltenMetalRegistry.metals()) {
+            boolean sourceTagged = metal.source().get().defaultFluidState().is(FluidTags.LAVA);
+            boolean flowingTagged = metal.flowing().get().defaultFluidState().is(FluidTags.LAVA);
+            if (!sourceTagged || !flowingTagged) {
+                missing.add(metal.definition().id());
+            }
+        }
+
+        if (!missing.isEmpty()) {
+            MCMoltenMetals.LOGGER.warn(
+                    "Molten fluids missing from minecraft:lava after tag reload: {}. "
+                            + "Direct lava-contact fallback remains active, but other tag-driven lava behavior may differ.",
+                    missing);
         }
     }
 }
