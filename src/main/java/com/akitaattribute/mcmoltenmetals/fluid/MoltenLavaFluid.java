@@ -4,11 +4,11 @@ import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.material.FlowingFluid;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.LavaFluid;
-import net.minecraft.world.level.material.FlowingFluid;
-import net.minecraft.world.level.block.state.StateDefinition;
 import net.neoforged.neoforge.fluids.FluidType;
 
 public abstract class MoltenLavaFluid extends LavaFluid {
@@ -39,7 +39,7 @@ public abstract class MoltenLavaFluid extends LavaFluid {
     }
 
     @Override
-    protected BlockState createLegacyBlock(FluidState state) {
+    public BlockState createLegacyBlock(FluidState state) {
         return metal.block().get().defaultBlockState()
                 .setValue(LiquidBlock.LEVEL, FlowingFluid.getLegacyLevel(state));
     }
