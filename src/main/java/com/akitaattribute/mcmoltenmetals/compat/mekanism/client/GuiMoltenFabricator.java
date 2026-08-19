@@ -2,11 +2,13 @@ package com.akitaattribute.mcmoltenmetals.compat.mekanism.client;
 
 import com.akitaattribute.mcmoltenmetals.compat.mekanism.tile.MoltenFabricatorTile;
 import mekanism.client.gui.GuiConfigurableTile;
+import mekanism.client.gui.element.bar.GuiVerticalPowerBar;
 import mekanism.client.gui.element.gauge.GaugeType;
 import mekanism.client.gui.element.gauge.GuiFluidGauge;
 import mekanism.client.gui.element.progress.GuiProgress;
 import mekanism.client.gui.element.progress.IProgressInfoHandler;
 import mekanism.client.gui.element.progress.ProgressType;
+import mekanism.client.gui.element.tab.GuiEnergyTab;
 import mekanism.common.inventory.container.tile.MekanismTileContainer;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -39,6 +41,9 @@ public class GuiMoltenFabricator extends GuiConfigurableTile<MoltenFabricatorTil
                 this,
                 131,
                 13));
+
+        addRenderableWidget(new GuiVerticalPowerBar(this, tile.getEnergyContainer(), 164, 15));
+        addRenderableWidget(new GuiEnergyTab(this, tile.getEnergyContainer(), tile::getActive));
 
         addRenderableWidget(new GuiProgress(new IProgressInfoHandler() {
             @Override

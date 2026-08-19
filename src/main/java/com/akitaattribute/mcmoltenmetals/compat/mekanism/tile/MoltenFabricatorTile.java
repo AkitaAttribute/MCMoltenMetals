@@ -9,13 +9,17 @@ import mekanism.api.AutomationType;
 import mekanism.api.IContentsListener;
 import mekanism.api.RelativeSide;
 import mekanism.api.SerializationConstants;
+import mekanism.common.capabilities.energy.MachineEnergyContainer;
 import mekanism.common.capabilities.fluid.BasicFluidTank;
+import mekanism.common.capabilities.holder.energy.EnergyContainerHelper;
+import mekanism.common.capabilities.holder.energy.IEnergyContainerHolder;
 import mekanism.common.capabilities.holder.fluid.FluidTankHelper;
 import mekanism.common.capabilities.holder.fluid.IFluidTankHolder;
 import mekanism.common.capabilities.holder.slot.IInventorySlotHolder;
 import mekanism.common.capabilities.holder.slot.InventorySlotHelper;
 import mekanism.common.inventory.container.MekanismContainer;
 import mekanism.common.inventory.container.sync.SyncableInt;
+import mekanism.common.inventory.slot.EnergyInventorySlot;
 import mekanism.common.inventory.slot.FluidInventorySlot;
 import mekanism.common.inventory.slot.InputInventorySlot;
 import mekanism.common.inventory.slot.OutputInventorySlot;
@@ -63,7 +67,9 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
     public OutputInventorySlot containerOutputSlot;
     public InputInventorySlot dioriteSlot;
     public InputInventorySlot selectorSlot;
+    public EnergyInventorySlot energySlot;
 
+    private MachineEnergyContainer<MoltenFabricatorTile> energyContainer;
     private int operatingTicks;
 
     public MoltenFabricatorTile(BlockPos pos, BlockState state) {
@@ -84,8 +90,20 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
             fluidConfig.setEjecting(true);
         }
 
+        // Energy uses Mekanism's normal configurable input capability, so Universal Cables and
+        // compatible NeoForge energy logistics can power the machine from configured sides.
+        configComponent.setupInputConfig(TransmissionType.ENERGY, energyContainer);
+
         ejectorComponent = new TileComponentEjector(this);
         ejectorComponent.setOutputData(configComponent, TransmissionType.FLUID);
+    }
+
+    @NotNull
+    @Override
+    protected IEnergyContainerHolder getInitialEnergyContainers(IContentsListener listener) {
+        EnergyContainerHelper builder = EnergyContainerHelper.forSideWithConfig(this);
+        builder.addContainer(energyContainer = MachineEnergyContainer.input(this, listener));
+        return builder.build();
     }
 
     @NotNull
@@ -114,6 +132,8 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
                 stack -> stack.is(Blocks.DIORITE.asItem()), listener, 64, 17));
         builder.addSlot(selectorSlot = InputInventorySlot.at(
                 MoltenFabricatorTile::isValidSelector, listener, 64, 53));
+        builder.addSlot(energySlot = EnergyInventorySlot.fillOrConvert(
+                energyContainer, this::getLevel, listener, 105, 53));
         return builder.build();
     }
 
@@ -121,8 +141,9 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
     protected boolean onUpdateServer() {
         boolean sendUpdatePacket = super.onUpdateServer();
 
-        // Handle lava buckets/tanks placed in the GUI input slot.
+        // Handle lava buckets/tanks and energy items placed in the GUI input slots.
         lavaContainerSlot.fillTank(containerOutputSlot);
+        energySlot.fillContainerOrConvert();
 
         MoltenMetalRegistry.MoltenMetal selected = selectedMetal(selectorSlot.getStack());
         boolean canProcess = canFunction()
@@ -140,6 +161,14 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
             return sendUpdatePacket;
         }
 
+        long energyPerTick = energyContainer.getEnergyPerTick();
+        if (energyContainer.extract(energyPerTick, Action.SIMULATE, AutomationType.INTERNAL) < energyPerTick) {
+            // Power loss pauses progress rather than destroying work already completed.
+            setActive(false);
+            return sendUpdatePacket;
+        }
+
+        energyContainer.extract(energyPerTick, Action.EXECUTE, AutomationType.INTERNAL);
         setActive(true);
         operatingTicks++;
         if (operatingTicks >= BASE_TICKS_REQUIRED) {
@@ -167,6 +196,10 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
         dioriteSlot.shrinkStack(1, Action.EXECUTE);
         outputTank.insert(new FluidStack(selected.source().get(), OUTPUT_PER_OPERATION), Action.EXECUTE, AutomationType.INTERNAL);
         markForSave();
+    }
+
+    public MachineEnergyContainer<MoltenFabricatorTile> getEnergyContainer() {
+        return energyContainer;
     }
 
     public int getOperatingTicks() {

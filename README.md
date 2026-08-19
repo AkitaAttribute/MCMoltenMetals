@@ -28,11 +28,13 @@ The first-pass Molten Fabricator behavior is:
 
 - An 8-bucket internal lava input tank accepts lava from filled fluid containers in the GUI or from NeoForge/Mekanism fluid logistics.
 - An 8-bucket internal molten-metal output tank exposes its contents to fluid logistics and uses Mekanism's configurable fluid side system. The default sides are left/back/top/bottom input and right output, with fluid auto-ejection enabled.
+- The machine draws 100 FE/RF per tick while actively processing. Its internal energy buffer is 40,000 FE/RF, and the five-second (100-tick) operation consumes 10,000 FE/RF total.
+- Energy can enter through Mekanism/NeoForge energy logistics on configured energy-input sides or through the GUI energy-item slot. Losing power pauses progress until power returns.
 - One diorite is consumed per operation.
 - A copper or iron ingot/raw item selects the output metal but is not consumed. Common `c:` tags, legacy `forge:` tags, and conventional item IDs are recognized.
 - One operation currently converts 1,000 mB lava + 1 diorite into 1,000 mB of the selected molten copper or molten iron over five seconds.
 - The output buffer cannot mix fluids, so changing the selector while another molten metal remains buffered simply pauses processing until the output tank is emptied.
 - The crafting recipe keeps the Metallurgic Infuser shell pattern but replaces its center osmium with Mekanism's Basic Mechanical Pipe: `I#I / RPR / I#I`, where `I` is an iron ingot, `#` is a furnace, `R` is redstone dust, and `P` is `mekanism:basic_mechanical_pipe`.
-- The placed block and inventory item inherit Mekanism's Chemical Infuser model, so the exterior appearance is the same as the Chemical Infuser while remaining a distinct `mcmoltenmetals:molten_fabricator` block/item.
+- The placed block and inventory item inherit Mekanism's Chemical Infuser model and custom shape, so the exterior appearance and occlusion behavior match the Chemical Infuser while remaining a distinct `mcmoltenmetals:molten_fabricator` block/item.
 
 Generated client assets are stored under `config/mcmoltenmetals/generated_resource_pack`. Generated lava fluid tags and optional Fabricator server data are stored under `config/mcmoltenmetals/generated_data_pack`.

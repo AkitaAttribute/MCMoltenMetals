@@ -4,6 +4,7 @@ import com.akitaattribute.mcmoltenmetals.MCMoltenMetals;
 import com.akitaattribute.mcmoltenmetals.compat.mekanism.tile.MoltenFabricatorTile;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import mekanism.api.energy.IEnergyConversionHelper;
 import mekanism.api.text.ILangEntry;
 import mekanism.common.block.attribute.AttributeUpgradeSupport;
 import mekanism.common.block.prefab.BlockTile;
@@ -33,6 +34,9 @@ import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
  */
 public final class MekanismIntegration {
     public static final String MACHINE_NAME = "molten_fabricator";
+    public static final long FE_PER_TICK = 100L;
+    public static final long FE_STORAGE = FE_PER_TICK * 400L;
+
     private static final String CLIENT_INTEGRATION_CLASS =
             "com.akitaattribute.mcmoltenmetals.compat.mekanism.client.MekanismClientIntegration";
 
@@ -43,7 +47,8 @@ public final class MekanismIntegration {
     public static final Machine<MoltenFabricatorTile> MOLTEN_FABRICATOR_TYPE = MachineBuilder
             .createMachine(MekanismIntegration::tileType, Lang.MOLTEN_FABRICATOR)
             .withGui(MekanismIntegration::containerType)
-            .withSideConfig(TransmissionType.FLUID)
+            .withEnergyConfig(MekanismIntegration::energyUsageJoules, MekanismIntegration::energyStorageJoules)
+            .withSideConfig(TransmissionType.FLUID, TransmissionType.ENERGY)
             .withCustomShape(BlockShapes.CHEMICAL_INFUSER)
             .without(AttributeUpgradeSupport.class)
             .build();
@@ -63,6 +68,14 @@ public final class MekanismIntegration {
             CONTAINER_TYPES.register(MACHINE_NAME, MoltenFabricatorTile.class);
 
     private MekanismIntegration() {
+    }
+
+    private static long energyUsageJoules() {
+        return IEnergyConversionHelper.INSTANCE.feConversion().convertFrom(FE_PER_TICK);
+    }
+
+    private static long energyStorageJoules() {
+        return IEnergyConversionHelper.INSTANCE.feConversion().convertFrom(FE_STORAGE);
     }
 
     private static TileEntityTypeRegistryObject<MoltenFabricatorTile> tileType() {
