@@ -2,6 +2,7 @@ package com.akitaattribute.mcmoltenmetals.compat.mekanism;
 
 import com.akitaattribute.mcmoltenmetals.MCMoltenMetals;
 import com.akitaattribute.mcmoltenmetals.compat.mekanism.tile.MoltenFabricatorTile;
+import com.akitaattribute.mcmoltenmetals.simulation.MoltenFabricatorMachine;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import mekanism.api.energy.IEnergyConversionHelper;
@@ -34,8 +35,8 @@ import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
  */
 public final class MekanismIntegration {
     public static final String MACHINE_NAME = "molten_fabricator";
-    public static final long FE_PER_TICK = 100L;
-    public static final long FE_STORAGE = FE_PER_TICK * 400L;
+    public static final long FE_PER_TICK = MoltenFabricatorMachine.ENERGY_PER_TICK_FE;
+    public static final long FE_STORAGE = MoltenFabricatorMachine.ENERGY_CAPACITY_FE;
 
     private static final String CLIENT_INTEGRATION_CLASS =
             "com.akitaattribute.mcmoltenmetals.compat.mekanism.client.MekanismClientIntegration";

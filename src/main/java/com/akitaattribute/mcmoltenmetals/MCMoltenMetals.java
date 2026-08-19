@@ -6,6 +6,7 @@ import com.akitaattribute.mcmoltenmetals.fluid.MoltenEntityEvents;
 import com.akitaattribute.mcmoltenmetals.registry.MetalDiscovery;
 import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
 import com.akitaattribute.mcmoltenmetals.resource.GeneratedDataPack;
+import com.akitaattribute.mcmoltenmetals.simulation.OfflineMachineRegistry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.bus.api.IEventBus;
@@ -31,6 +32,7 @@ public final class MCMoltenMetals {
         NeoForge.EVENT_BUS.addListener(MoltenMetalCommand::register);
         NeoForge.EVENT_BUS.addListener(MoltenEntityEvents::onEntityTick);
         NeoForge.EVENT_BUS.addListener(MoltenEntityEvents::onTagsUpdated);
+        NeoForge.EVENT_BUS.addListener(OfflineMachineRegistry::onServerTick);
     }
 
     public static ResourceLocation id(String path) {

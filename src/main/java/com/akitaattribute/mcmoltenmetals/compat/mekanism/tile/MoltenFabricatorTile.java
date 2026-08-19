@@ -1,8 +1,9 @@
 package com.akitaattribute.mcmoltenmetals.compat.mekanism.tile;
 
 import com.akitaattribute.mcmoltenmetals.compat.mekanism.MekanismIntegration;
-import com.akitaattribute.mcmoltenmetals.energy.OfflineEnergyProviders;
 import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
+import com.akitaattribute.mcmoltenmetals.simulation.MoltenFabricatorMachine;
+import com.akitaattribute.mcmoltenmetals.simulation.OfflineMachineRegistry;
 import java.util.Locale;
 import java.util.Set;
 import mekanism.api.Action;
@@ -31,7 +32,6 @@ import mekanism.common.tile.component.config.ConfigInfo;
 import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityConfigurableMachine;
 import mekanism.common.util.MekanismUtils;
-import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -45,26 +45,24 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.FluidType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Mekanism-backed processor used by the optional integration.
+ * Mekanism-facing wrapper for the chunk-independent Molten Fabricator simulation.
  *
- * One operation consumes one bucket of lava and one diorite, and produces one bucket of
- * molten copper or molten iron. The metal item is a selector/catalyst and is never consumed.
+ * While loaded, normal Mekanism/NeoForge capabilities remain fully usable. The capability contents
+ * are synchronized into the logical machine before its one simulation tick and mirrored back after
+ * it. While unloaded, the global offline registry ticks that same logical state directly.
  */
 public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
-    public static final int TANK_CAPACITY = 8 * FluidType.BUCKET_VOLUME;
-    public static final int LAVA_PER_OPERATION = FluidType.BUCKET_VOLUME;
-    public static final int OUTPUT_PER_OPERATION = FluidType.BUCKET_VOLUME;
-    public static final int BASE_TICKS_REQUIRED = 5 * SharedConstants.TICKS_PER_SECOND;
+    public static final int TANK_CAPACITY = MoltenFabricatorMachine.TANK_CAPACITY_MB;
+    public static final int LAVA_PER_OPERATION = MoltenFabricatorMachine.LAVA_PER_OPERATION_MB;
+    public static final int OUTPUT_PER_OPERATION = MoltenFabricatorMachine.OUTPUT_PER_OPERATION_MB;
+    public static final int BASE_TICKS_REQUIRED = MoltenFabricatorMachine.TICKS_REQUIRED;
 
-    private static final String NBT_LAST_GAME_TIME = "MoltenFabricatorLastGameTime";
-    private static final String NBT_OFFLINE_ENERGY = "MoltenFabricatorOfflineEnergy";
-    private static final String NBT_OFFLINE_PROCESS = "MoltenFabricatorOfflineProcess";
     private static final Set<String> SUPPORTED_METALS = Set.of("copper", "iron");
 
     public BasicFluidTank lavaTank;
@@ -77,24 +75,16 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
 
     private MachineEnergyContainer<MoltenFabricatorTile> energyContainer;
     private int operatingTicks;
-
-    // Offline processing is catch-up based. These values are snapshots from the last serialized
-    // loaded state, so energy injected after the chunk reloads cannot be spent retroactively.
-    private long lastProcessedGameTime = Long.MIN_VALUE;
-    private long offlineSavedEnergyJoules;
-    private boolean offlineProcessAllowed;
-    private boolean offlineCatchupPending;
+    @Nullable
+    private MoltenFabricatorMachine machine;
+    private boolean chunkUnloading;
 
     public MoltenFabricatorTile(BlockPos pos, BlockState state) {
         super(MekanismIntegration.MOLTEN_FABRICATOR, pos, state);
 
-        // One configurable fluid transmission exposes the lava tank as input and the molten
-        // buffer as output. This is the same side-config/capability path Mekanism Mechanical
-        // Pipes use for native machines.
         ConfigInfo fluidConfig = configComponent.setupIOConfig(
                 TransmissionType.FLUID, lavaTank, outputTank, RelativeSide.RIGHT);
         if (fluidConfig != null) {
-            // Useful first-placement defaults. All sides remain configurable in the Mekanism UI.
             fluidConfig.setDataType(DataType.INPUT, RelativeSide.LEFT);
             fluidConfig.setDataType(DataType.INPUT, RelativeSide.BACK);
             fluidConfig.setDataType(DataType.INPUT, RelativeSide.TOP);
@@ -103,8 +93,6 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
             fluidConfig.setEjecting(true);
         }
 
-        // Energy uses Mekanism's normal configurable input capability, so Universal Cables and
-        // compatible NeoForge energy logistics can power the machine from configured sides.
         configComponent.setupInputConfig(TransmissionType.ENERGY, energyContainer);
 
         ejectorComponent = new TileComponentEjector(this);
@@ -135,12 +123,8 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
     @Override
     protected IInventorySlotHolder getInitialInventory(IContentsListener listener) {
         InventorySlotHelper builder = InventorySlotHelper.forSide(facingSupplier);
-
-        // Filled lava containers are drained into the same internal tank that is exposed to
-        // pipes. Empty containers are moved to the companion output slot.
         builder.addSlot(lavaContainerSlot = FluidInventorySlot.fill(lavaTank, listener, 28, 20));
         builder.addSlot(containerOutputSlot = OutputInventorySlot.at(listener, 28, 51));
-
         builder.addSlot(dioriteSlot = InputInventorySlot.at(
                 stack -> stack.is(Blocks.DIORITE.asItem()), listener, 64, 17));
         builder.addSlot(selectorSlot = InputInventorySlot.at(
@@ -151,181 +135,149 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
     }
 
     @Override
+    public void onLoad() {
+        super.onLoad();
+        chunkUnloading = false;
+        if (level instanceof ServerLevel serverLevel) {
+            MoltenFabricatorMachine initialState = snapshotNewMachine();
+            MoltenFabricatorMachine registered =
+                    OfflineMachineRegistry.registerOrGet(serverLevel, worldPosition, initialState);
+            machine = registered;
+            if (registered != initialState) {
+                // Persistent logical state is authoritative after an unloaded interval.
+                applyMachineToTile(registered);
+            }
+        }
+    }
+
+    @Override
+    public void onChunkUnloaded() {
+        chunkUnloading = true;
+        if (level instanceof ServerLevel serverLevel && machine != null) {
+            if (syncMachineFromTile(machine)) {
+                OfflineMachineRegistry.markDirty(serverLevel);
+            }
+        }
+        super.onChunkUnloaded();
+    }
+
+    @Override
+    public void setRemoved() {
+        if (!chunkUnloading && level instanceof ServerLevel serverLevel) {
+            OfflineMachineRegistry.unregister(serverLevel, worldPosition);
+        }
+        super.setRemoved();
+        machine = null;
+    }
+
+    @Override
     protected boolean onUpdateServer() {
         boolean sendUpdatePacket = super.onUpdateServer();
-        long currentGameTime = level.getGameTime();
 
-        // Catch up before accepting newly loaded cable/item power. Normal Mekanism cables do not
-        // receive retroactive credit; only explicitly registered unloaded-capable providers do.
-        if (offlineCatchupPending && level instanceof ServerLevel serverLevel) {
-            applyOfflineCatchup(serverLevel, currentGameTime);
-        }
-        lastProcessedGameTime = currentGameTime;
-
-        // Handle lava buckets/tanks and energy items placed in the GUI input slots.
+        // Loaded-world logistics remain ordinary Mekanism behavior.
         lavaContainerSlot.fillTank(containerOutputSlot);
         energySlot.fillContainerOrConvert();
 
-        MoltenMetalRegistry.MoltenMetal selected = selectedMetal(selectorSlot.getStack());
-        boolean canProcess = canProcessWithoutEnergy(selected);
-
-        if (!canProcess) {
-            if (operatingTicks != 0) {
-                operatingTicks = 0;
-                markForSave();
-            }
+        MoltenFabricatorMachine logicalMachine = ensureMachine();
+        if (logicalMachine == null) {
             setActive(false);
             return sendUpdatePacket;
         }
 
-        long energyPerTick = energyContainer.getEnergyPerTick();
-        if (energyContainer.extract(energyPerTick, Action.SIMULATE, AutomationType.INTERNAL) < energyPerTick) {
-            // Power loss pauses progress rather than destroying work already completed.
-            setActive(false);
-            return sendUpdatePacket;
+        ServerLevel serverLevel = (ServerLevel) level;
+        boolean changed = syncMachineFromTile(logicalMachine);
+        MoltenFabricatorMachine.TickResult result = logicalMachine.tick(serverLevel.getGameTime());
+        if (changed || result.changed()) {
+            OfflineMachineRegistry.markDirty(serverLevel);
         }
-
-        energyContainer.extract(energyPerTick, Action.EXECUTE, AutomationType.INTERNAL);
-        setActive(true);
-        operatingTicks++;
-        if (operatingTicks >= BASE_TICKS_REQUIRED) {
-            finishOperation(selected);
-            operatingTicks = 0;
-        }
+        applyMachineToTile(logicalMachine);
+        setActive(result.active());
         return sendUpdatePacket;
     }
 
-    private void applyOfflineCatchup(ServerLevel serverLevel, long currentGameTime) {
-        offlineCatchupPending = false;
-
-        if (!offlineProcessAllowed || lastProcessedGameTime == Long.MIN_VALUE) {
-            clearOfflineSnapshot();
-            return;
+    @Nullable
+    private MoltenFabricatorMachine ensureMachine() {
+        if (machine != null) {
+            return machine;
         }
-
-        // The current loaded tick is processed normally below, so only replay ticks strictly
-        // between the saved tick and this one. Server downtime does not advance gameTime.
-        long elapsedTicks = currentGameTime - lastProcessedGameTime - 1L;
-        if (elapsedTicks <= 0) {
-            clearOfflineSnapshot();
-            return;
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return null;
         }
+        MoltenFabricatorMachine initialState = snapshotNewMachine();
+        machine = OfflineMachineRegistry.registerOrGet(serverLevel, worldPosition, initialState);
+        if (machine != initialState) {
+            applyMachineToTile(machine);
+        }
+        return machine;
+    }
 
+    private MoltenFabricatorMachine snapshotNewMachine() {
+        MoltenFabricatorMachine state = new MoltenFabricatorMachine();
+        syncMachineFromTile(state);
+        return state;
+    }
+
+    private boolean syncMachineFromTile(MoltenFabricatorMachine state) {
+        long energyFe = IEnergyConversionHelper.INSTANCE.feConversion().convertTo(energyContainer.getEnergy());
         MoltenMetalRegistry.MoltenMetal selected = selectedMetal(selectorSlot.getStack());
-        long usefulTicks = maxUsefulOfflineTicks(selected, elapsedTicks);
-        if (usefulTicks <= 0) {
-            clearOfflineSnapshot();
-            return;
-        }
-
-        long requestedFe = usefulTicks * MekanismIntegration.FE_PER_TICK;
-
-        // Ask unloaded-capable external sources first. With no provider registered this returns
-        // zero, and the saved internal buffer becomes the sole offline power budget.
-        long externalFe = OfflineEnergyProviders.extract(
-                serverLevel,
-                worldPosition,
-                lastProcessedGameTime + 1L,
-                currentGameTime,
-                requestedFe);
-        long externalJoules = IEnergyConversionHelper.INSTANCE.feConversion().convertFrom(externalFe);
-
-        long currentLoadedEnergy = energyContainer.getEnergy();
-        long savedEnergy = Math.min(offlineSavedEnergyJoules, energyContainer.getMaxEnergy());
-        // Preserve power that may have arrived after the chunk was loaded; it cannot fund the
-        // elapsed interval retroactively.
-        long newlyLoadedEnergy = Math.max(0L, currentLoadedEnergy - savedEnergy);
-
-        long offlineEnergyBudget = savedEnergy + externalJoules;
-        long energyPerTick = energyContainer.getEnergyPerTick();
-        long fundedTicks = Math.min(usefulTicks, offlineEnergyBudget / energyPerTick);
-        long consumedJoules = fundedTicks * energyPerTick;
-        long remainingOfflineEnergy = offlineEnergyBudget - consumedJoules;
-
-        // Any unused offline energy remains in the machine, while post-load energy is preserved.
-        energyContainer.setEnergy(Math.min(
-                energyContainer.getMaxEnergy(),
-                newlyLoadedEnergy + remainingOfflineEnergy));
-
-        if (fundedTicks > 0) {
-            advanceOfflineProcessing(selected, fundedTicks);
-            markForSave();
-        }
-        clearOfflineSnapshot();
+        String selectorMetal = selected == null ? "" : selected.definition().id();
+        String outputMetal = outputMetalId();
+        return state.syncLoadedState(
+                lavaTank.getFluidAmount(),
+                dioriteSlot.getStack().getCount(),
+                selectorMetal,
+                outputMetal,
+                outputTank.getFluidAmount(),
+                energyFe,
+                operatingTicks,
+                canFunction());
     }
 
-    private long maxUsefulOfflineTicks(@Nullable MoltenMetalRegistry.MoltenMetal selected, long elapsedTicks) {
-        if (selected == null || !canAcceptOutput(selected) || dioriteSlot.isEmpty()
-                || lavaTank.getFluidAmount() < LAVA_PER_OPERATION) {
-            return 0L;
+    private void applyMachineToTile(MoltenFabricatorMachine state) {
+        int targetLava = state.lavaMb();
+        if (lavaTank.getFluidAmount() != targetLava
+                || (targetLava > 0 && lavaTank.getFluid().getFluid() != Fluids.LAVA)) {
+            lavaTank.setStack(targetLava == 0 ? FluidStack.EMPTY : new FluidStack(Fluids.LAVA, targetLava));
         }
 
-        int operationsFromLava = lavaTank.getFluidAmount() / LAVA_PER_OPERATION;
-        int operationsFromDiorite = dioriteSlot.getStack().getCount();
-        int operationsFromOutput = (outputTank.getCapacity() - outputTank.getFluidAmount()) / OUTPUT_PER_OPERATION;
-        int availableOperations = Math.min(operationsFromLava, Math.min(operationsFromDiorite, operationsFromOutput));
-        if (availableOperations <= 0) {
-            return 0L;
+        int targetDiorite = state.diorite();
+        if (dioriteSlot.getStack().getCount() != targetDiorite
+                || (targetDiorite > 0 && !dioriteSlot.getStack().is(Blocks.DIORITE.asItem()))) {
+            dioriteSlot.setStack(targetDiorite == 0 ? ItemStack.EMPTY : new ItemStack(Blocks.DIORITE, targetDiorite));
         }
 
-        long firstOperationTicks = BASE_TICKS_REQUIRED - operatingTicks;
-        long usefulTicks = firstOperationTicks + (long) (availableOperations - 1) * BASE_TICKS_REQUIRED;
-        return Math.min(elapsedTicks, usefulTicks);
-    }
-
-    private void advanceOfflineProcessing(MoltenMetalRegistry.MoltenMetal selected, long fundedTicks) {
-        long remainingTicks = fundedTicks;
-        while (remainingTicks > 0 && selectedMetal(selectorSlot.getStack()) == selected
-                && !dioriteSlot.isEmpty()
-                && lavaTank.getFluidAmount() >= LAVA_PER_OPERATION
-                && canAcceptOutput(selected)) {
-            int ticksToCompletion = BASE_TICKS_REQUIRED - operatingTicks;
-            int step = (int) Math.min(remainingTicks, ticksToCompletion);
-            operatingTicks += step;
-            remainingTicks -= step;
-
-            if (operatingTicks >= BASE_TICKS_REQUIRED) {
-                if (!finishOperation(selected)) {
-                    operatingTicks = 0;
-                    break;
+        int targetOutput = state.outputMb();
+        if (targetOutput == 0) {
+            if (!outputTank.isEmpty()) {
+                outputTank.setStack(FluidStack.EMPTY);
+            }
+        } else {
+            MoltenMetalRegistry.find(state.outputMetal()).ifPresent(metal -> {
+                if (outputTank.getFluidAmount() != targetOutput
+                        || outputTank.getFluid().getFluid() != metal.source().get()) {
+                    outputTank.setStack(new FluidStack(metal.source().get(), targetOutput));
                 }
-                operatingTicks = 0;
+            });
+        }
+
+        long targetJoules = IEnergyConversionHelper.INSTANCE.feConversion().convertFrom(state.energyFe());
+        if (energyContainer.getEnergy() != targetJoules) {
+            energyContainer.setEnergy(targetJoules);
+        }
+
+        operatingTicks = state.progress();
+    }
+
+    private String outputMetalId() {
+        if (outputTank.isEmpty()) {
+            return "";
+        }
+        for (MoltenMetalRegistry.MoltenMetal metal : MoltenMetalRegistry.metals()) {
+            if (outputTank.getFluid().getFluid() == metal.source().get()) {
+                return metal.definition().id();
             }
         }
-    }
-
-    private boolean canProcessWithoutEnergy(@Nullable MoltenMetalRegistry.MoltenMetal selected) {
-        return canFunction()
-                && selected != null
-                && !dioriteSlot.isEmpty()
-                && lavaTank.getFluidAmount() >= LAVA_PER_OPERATION
-                && canAcceptOutput(selected);
-    }
-
-    private boolean canAcceptOutput(MoltenMetalRegistry.MoltenMetal selected) {
-        FluidStack desired = new FluidStack(selected.source().get(), OUTPUT_PER_OPERATION);
-        return outputTank.insert(desired, Action.SIMULATE, AutomationType.INTERNAL).isEmpty();
-    }
-
-    private boolean finishOperation(MoltenMetalRegistry.MoltenMetal selected) {
-        // Recheck every mutable input before committing the operation.
-        if (selectedMetal(selectorSlot.getStack()) != selected
-                || dioriteSlot.isEmpty()
-                || lavaTank.extract(LAVA_PER_OPERATION, Action.SIMULATE, AutomationType.INTERNAL).getAmount() < LAVA_PER_OPERATION
-                || !canAcceptOutput(selected)) {
-            return false;
-        }
-
-        lavaTank.extract(LAVA_PER_OPERATION, Action.EXECUTE, AutomationType.INTERNAL);
-        dioriteSlot.shrinkStack(1, Action.EXECUTE);
-        outputTank.insert(new FluidStack(selected.source().get(), OUTPUT_PER_OPERATION), Action.EXECUTE, AutomationType.INTERNAL);
-        markForSave();
-        return true;
-    }
-
-    private void clearOfflineSnapshot() {
-        offlineSavedEnergyJoules = 0L;
-        offlineProcessAllowed = false;
+        return "";
     }
 
     public MachineEnergyContainer<MoltenFabricatorTile> getEnergyContainer() {
@@ -378,38 +330,17 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
 
     @Override
     public void saveAdditional(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider provider) {
+        if (machine != null) {
+            operatingTicks = machine.progress();
+        }
         super.saveAdditional(tag, provider);
         tag.putInt(SerializationConstants.PROGRESS, operatingTicks);
-
-        // If a freshly loaded tile is serialized before its first server tick, preserve the
-        // original offline snapshot rather than erasing the pending interval.
-        if (offlineCatchupPending) {
-            tag.putLong(NBT_LAST_GAME_TIME, lastProcessedGameTime);
-            tag.putLong(NBT_OFFLINE_ENERGY, offlineSavedEnergyJoules);
-            tag.putBoolean(NBT_OFFLINE_PROCESS, offlineProcessAllowed);
-        } else {
-            long saveGameTime = level == null ? lastProcessedGameTime : level.getGameTime();
-            tag.putLong(NBT_LAST_GAME_TIME, saveGameTime);
-            tag.putLong(NBT_OFFLINE_ENERGY, energyContainer.getEnergy());
-            tag.putBoolean(NBT_OFFLINE_PROCESS, canProcessWithoutEnergy(selectedMetal(selectorSlot.getStack())));
-        }
     }
 
     @Override
     public void loadAdditional(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider provider) {
         super.loadAdditional(tag, provider);
-        operatingTicks = tag.getInt(SerializationConstants.PROGRESS);
-
-        if (tag.contains(NBT_LAST_GAME_TIME)) {
-            lastProcessedGameTime = tag.getLong(NBT_LAST_GAME_TIME);
-            offlineSavedEnergyJoules = tag.getLong(NBT_OFFLINE_ENERGY);
-            offlineProcessAllowed = tag.getBoolean(NBT_OFFLINE_PROCESS);
-            offlineCatchupPending = true;
-        } else {
-            lastProcessedGameTime = Long.MIN_VALUE;
-            clearOfflineSnapshot();
-            offlineCatchupPending = false;
-        }
+        operatingTicks = Math.max(0, Math.min(tag.getInt(SerializationConstants.PROGRESS), BASE_TICKS_REQUIRED - 1));
     }
 
     @Override

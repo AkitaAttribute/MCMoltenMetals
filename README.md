@@ -24,20 +24,22 @@ NeoForge 1.21.1 mod that discovers metal materials at startup and registers pale
 
 When Mekanism is installed, MC Molten Metals additionally registers a **Molten Fabricator**. Mekanism is an optional dependency: the integration classes are not loaded and the machine is not registered when Mekanism is absent.
 
-The first-pass Molten Fabricator behavior is:
+The current Molten Fabricator behavior is:
 
-- An 8-bucket internal lava input tank accepts lava from filled fluid containers in the GUI or from NeoForge/Mekanism fluid logistics.
-- An 8-bucket internal molten-metal output tank exposes its contents to fluid logistics and uses Mekanism's configurable fluid side system. The default sides are left/back/top/bottom input and right output, with fluid auto-ejection enabled.
-- The machine draws 100 FE/RF per tick while actively processing. Its internal energy buffer is 40,000 FE/RF, and the five-second (100-tick) operation consumes 10,000 FE/RF total.
-- Energy can enter through Mekanism/NeoForge energy logistics on configured energy-input sides or through the GUI energy-item slot. Losing power pauses progress until power returns.
-- The Fabricator does not force-load its chunk. When it loads again it catches up against elapsed **server game time** (not wall-clock time), using the saved selector, lava, diorite, output capacity, and power state. Server downtime therefore produces no progress.
-- During unloaded catch-up the Fabricator first asks registered unloaded-capable energy providers for power, then falls back to the energy that was already stored in its own buffer when the chunk was serialized. Ordinary Mekanism cables/generators do not receive retroactive credit merely because they are connected when the chunk reloads.
-- The public `OfflineEnergyProvider`/`OfflineEnergyProviders` hook is independent of Mekanism and is intentionally empty by default. A future generator/network can register an implementation that resolves unloaded connectivity and available generation from persistent state without force-loading chunks.
-- Fluid/item logistics are not simulated while unloaded yet, so offline work cannot consume lava/diorite that was not already stored or eject molten output beyond the machine's internal output capacity.
-- One diorite is consumed per operation.
-- A copper or iron ingot/raw item selects the output metal but is not consumed. Common `c:` tags, legacy `forge:` tags, and conventional item IDs are recognized.
-- One operation currently converts 1,000 mB lava + 1 diorite into 1,000 mB of the selected molten copper or molten iron over five seconds.
-- The output buffer cannot mix fluids, so changing the selector while another molten metal remains buffered simply pauses processing until the output tank is emptied.
+- For offline-simulation testing, both the lava input tank and molten output tank are temporarily **1,000,000 buckets / 1,000,000,000 mB** each.
+- Lava can enter through filled fluid containers in the GUI or through normal NeoForge/Mekanism fluid logistics while the chunk is loaded.
+- Molten output is exposed through normal fluid logistics and uses Mekanism's configurable fluid side system. The default sides are left/back/top/bottom input and right output, with fluid auto-ejection enabled.
+- The machine draws **100 FE/RF per tick** while actively processing. Its test energy buffer is temporarily **1,000,000,000 FE/RF**; one five-second (100-tick) operation still consumes exactly 10,000 FE/RF.
+- Energy can enter through normal Mekanism/NeoForge energy logistics on configured input sides or through the GUI energy-item slot while loaded.
+- One diorite is consumed per operation. A copper or iron ingot/raw item selects the output metal but is not consumed.
+- One operation converts 1,000 mB lava + 1 diorite into 1,000 mB of the selected molten copper or molten iron over five seconds.
+- The output buffer cannot mix fluids. Insufficient power/input or a blocked output pauses progress; changing the selected metal resets incompatible partial progress.
+- The Fabricator has chunk-independent logical state and one processing implementation. A persistent registry records its dimension + block position for its lifetime.
+- Every server game tick, a global offline tick checks registered machine positions. If the containing chunk is loaded, Minecraft/Mekanism performs the normal tile tick. If the chunk is not loaded, the registry directly ticks the same logical Fabricator state. There is no reload-time catch-up simulation.
+- The logical machine has a same-game-tick guard so a chunk load/unload boundary cannot cause both the loaded and offline paths to process it twice.
+- Loaded Fabricators remain standard Mekanism/NeoForge machines: Universal Cables, Mechanical Pipes, GUI container slots, side configuration, and other normal capability-based interactions continue to work.
+- Unloaded Fabricators currently use the resources already present in their persistent logical state. Ordinary Mekanism pipes/cables/generators are not simulated while unloaded. The logical state exposes chunk-independent resource insertion/extraction methods for the offline power/fluid/item network planned next.
+- Server downtime does not create progress because the offline simulation only advances from actual server game ticks.
 - The crafting recipe keeps the Metallurgic Infuser shell pattern but replaces its center osmium with Mekanism's Basic Mechanical Pipe: `I#I / RPR / I#I`, where `I` is an iron ingot, `#` is a furnace, `R` is redstone dust, and `P` is `mekanism:basic_mechanical_pipe`.
 - The placed block and inventory item inherit Mekanism's Chemical Infuser model and custom shape, so the exterior appearance and occlusion behavior match the Chemical Infuser while remaining a distinct `mcmoltenmetals:molten_fabricator` block/item.
 
