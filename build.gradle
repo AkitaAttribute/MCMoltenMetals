@@ -15,6 +15,7 @@ java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
 repositories {
     mavenCentral()
     maven { url = 'https://maven.blamejared.com/' }
+    maven { url = 'https://modmaven.dev/' }
 }
 
 neoForge {
@@ -27,6 +28,10 @@ configurations { runtimeClasspath.extendsFrom localRuntime }
 dependencies {
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
     localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+
+    // Full Mekanism is compile-only because the optional machine integration uses Mekanism's
+    // native tile/configuration classes. Runtime loading is gated behind a ModList check.
+    compileOnly "mekanism:Mekanism:${mekanism_version}"
 }
 
 processResources {
