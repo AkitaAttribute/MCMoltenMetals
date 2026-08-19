@@ -29,3 +29,10 @@ type="optional"
 versionRange="[19,)"
 ordering="NONE"
 side="CLIENT"
+
+[[dependencies.${mod_id}]]
+modId="mekanism"
+type="optional"
+versionRange="[10.7,)"
+ordering="AFTER"
+side="BOTH"
