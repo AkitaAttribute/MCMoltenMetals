@@ -2,7 +2,6 @@ package com.akitaattribute.mcmoltenmetals.compat.mekanism.tile;
 
 import com.akitaattribute.mcmoltenmetals.compat.mekanism.MekanismIntegration;
 import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import mekanism.api.Action;
@@ -22,11 +21,14 @@ import mekanism.common.inventory.slot.InputInventorySlot;
 import mekanism.common.inventory.slot.OutputInventorySlot;
 import mekanism.common.lib.transmitter.TransmissionType;
 import mekanism.common.tile.component.TileComponentEjector;
+import mekanism.common.tile.component.config.ConfigInfo;
+import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityConfigurableMachine;
 import mekanism.common.util.MekanismUtils;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -67,10 +69,20 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
     public MoltenFabricatorTile(BlockPos pos, BlockState state) {
         super(MekanismIntegration.MOLTEN_FABRICATOR, pos, state);
 
-        // One configurable fluid channel exposes the lava tank as input and the molten tank
-        // as output. This makes Mechanical Pipes and other NeoForge fluid logistics work in
-        // the same way as native Mekanism machines.
-        configComponent.setupIOConfig(TransmissionType.FLUID, lavaTank, outputTank, RelativeSide.RIGHT);
+        // One configurable fluid transmission exposes the lava tank as input and the molten
+        // buffer as output. This is the same side-config/capability path Mekanism Mechanical
+        // Pipes use for native machines.
+        ConfigInfo fluidConfig = configComponent.setupIOConfig(
+                TransmissionType.FLUID, lavaTank, outputTank, RelativeSide.RIGHT);
+        if (fluidConfig != null) {
+            // Useful first-placement defaults. All sides remain configurable in the Mekanism UI.
+            fluidConfig.setDataType(DataType.INPUT, RelativeSide.LEFT);
+            fluidConfig.setDataType(DataType.INPUT, RelativeSide.BACK);
+            fluidConfig.setDataType(DataType.INPUT, RelativeSide.TOP);
+            fluidConfig.setDataType(DataType.INPUT, RelativeSide.BOTTOM);
+            fluidConfig.setDataType(DataType.OUTPUT, RelativeSide.RIGHT);
+            fluidConfig.setEjecting(true);
+        }
 
         ejectorComponent = new TileComponentEjector(this);
         ejectorComponent.setOutputData(configComponent, TransmissionType.FLUID);
@@ -190,10 +202,7 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine {
             return true;
         }
 
-        ResourceLocation itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (itemId == null) {
-            return false;
-        }
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
         String path = itemId.getPath().toLowerCase(Locale.ROOT);
         int slash = path.lastIndexOf('/');
         String fileName = slash >= 0 ? path.substring(slash + 1) : path;
