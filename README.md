@@ -30,6 +30,10 @@ The first-pass Molten Fabricator behavior is:
 - An 8-bucket internal molten-metal output tank exposes its contents to fluid logistics and uses Mekanism's configurable fluid side system. The default sides are left/back/top/bottom input and right output, with fluid auto-ejection enabled.
 - The machine draws 100 FE/RF per tick while actively processing. Its internal energy buffer is 40,000 FE/RF, and the five-second (100-tick) operation consumes 10,000 FE/RF total.
 - Energy can enter through Mekanism/NeoForge energy logistics on configured energy-input sides or through the GUI energy-item slot. Losing power pauses progress until power returns.
+- The Fabricator does not force-load its chunk. When it loads again it catches up against elapsed **server game time** (not wall-clock time), using the saved selector, lava, diorite, output capacity, and power state. Server downtime therefore produces no progress.
+- During unloaded catch-up the Fabricator first asks registered unloaded-capable energy providers for power, then falls back to the energy that was already stored in its own buffer when the chunk was serialized. Ordinary Mekanism cables/generators do not receive retroactive credit merely because they are connected when the chunk reloads.
+- The public `OfflineEnergyProvider`/`OfflineEnergyProviders` hook is independent of Mekanism and is intentionally empty by default. A future generator/network can register an implementation that resolves unloaded connectivity and available generation from persistent state without force-loading chunks.
+- Fluid/item logistics are not simulated while unloaded yet, so offline work cannot consume lava/diorite that was not already stored or eject molten output beyond the machine's internal output capacity.
 - One diorite is consumed per operation.
 - A copper or iron ingot/raw item selects the output metal but is not consumed. Common `c:` tags, legacy `forge:` tags, and conventional item IDs are recognized.
 - One operation currently converts 1,000 mB lava + 1 diorite into 1,000 mB of the selected molten copper or molten iron over five seconds.
