@@ -16,9 +16,21 @@ NeoForge 1.21.1 mod that discovers metal materials at startup and registers pale
 - The bucket is also generated: the current vanilla lava-bucket artwork is used as a shape/mask template while the contained lava pixels are palette-remapped to the metal.
 - Generated fluid sprites are placed in the block texture atlas; generated bucket artwork is placed in the item texture atlas.
 - Generated texture signatures include the source metal artwork and lava/bucket templates. Unchanged generated assets are reused on startup/resource reload.
-- JEI can display the registered bucket items/fluids. No recipes are included yet.
+- JEI can display the registered bucket items/fluids. No data-pack melting or casting recipes are included yet.
 - `/mcmoltenmetals <metal>` gives the corresponding `Molten <Metal> Bucket` and requires no operator permission.
 
-Generated client assets are stored under `config/mcmoltenmetals/generated_resource_pack`. Generated lava fluid tags are stored under `config/mcmoltenmetals/generated_data_pack`.
+## Optional Mekanism integration
 
-No melting, casting, or other recipes are included in this pass.
+When Mekanism is installed, MC Molten Metals additionally registers a **Molten Fabricator**. Mekanism is an optional dependency: the integration classes are not loaded and the machine is not registered when Mekanism is absent.
+
+The first-pass Molten Fabricator behavior is:
+
+- An 8-bucket internal lava input tank accepts lava from filled fluid containers in the GUI or from NeoForge/Mekanism fluid logistics.
+- An 8-bucket internal molten-metal output tank exposes its contents to fluid logistics and uses Mekanism's configurable fluid side system. The default sides are left/back/top/bottom input and right output, with fluid auto-ejection enabled.
+- One diorite is consumed per operation.
+- A copper or iron ingot/raw item selects the output metal but is not consumed. Common `c:` tags, legacy `forge:` tags, and conventional item IDs are recognized.
+- One operation currently converts 1,000 mB lava + 1 diorite into 1,000 mB of the selected molten copper or molten iron over five seconds.
+- The output buffer cannot mix fluids, so changing the selector while another molten metal remains buffered simply pauses processing until the output tank is emptied.
+- The machine currently has no crafting recipe; it is available from the Functional Blocks creative tab for testing.
+
+Generated client assets are stored under `config/mcmoltenmetals/generated_resource_pack`. Generated lava fluid tags are stored under `config/mcmoltenmetals/generated_data_pack`.
