@@ -1,6 +1,3 @@
 {
-  "parent": "minecraft:block/cube_all",
-  "textures": {
-    "all": "mekanism:block/steel_casing"
-  }
+  "parent": "mekanism:block/chemical_infuser"
 }
