@@ -1,9 +1,9 @@
 package com.akitaattribute.mcmoltenmetals.compat.mekanism;
 
 import com.akitaattribute.mcmoltenmetals.MCMoltenMetals;
-import com.akitaattribute.mcmoltenmetals.compat.mekanism.client.MekanismClientIntegration;
 import com.akitaattribute.mcmoltenmetals.compat.mekanism.tile.MoltenFabricatorTile;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import mekanism.api.text.ILangEntry;
 import mekanism.common.block.attribute.AttributeUpgradeSupport;
 import mekanism.common.block.prefab.BlockTile;
@@ -32,6 +32,8 @@ import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
  */
 public final class MekanismIntegration {
     public static final String MACHINE_NAME = "molten_fabricator";
+    private static final String CLIENT_INTEGRATION_CLASS =
+            "com.akitaattribute.mcmoltenmetals.compat.mekanism.client.MekanismClientIntegration";
 
     public static final BlockDeferredRegister BLOCKS = new BlockDeferredRegister(MCMoltenMetals.MOD_ID);
     public static final TileEntityTypeDeferredRegister TILE_TYPES = new TileEntityTypeDeferredRegister(MCMoltenMetals.MOD_ID);
@@ -46,7 +48,7 @@ public final class MekanismIntegration {
 
     public static final BlockRegistryObject<BlockTile<MoltenFabricatorTile, Machine<MoltenFabricatorTile>>, BlockItem> MOLTEN_FABRICATOR =
             BLOCKS.register(MACHINE_NAME,
-                    () -> new BlockTile<>(MOLTEN_FABRICATOR_TYPE, properties -> properties.mapColor(MapColor.METAL)));
+                    () -> new BlockTile<>(MOLTEN_FABRICATOR_TYPE, properties -> properties.mapColor(MapColor.COLOR_GRAY)));
 
     public static final TileEntityTypeRegistryObject<MoltenFabricatorTile> MOLTEN_FABRICATOR_TILE = TILE_TYPES
             .mekBuilder(MOLTEN_FABRICATOR, MoltenFabricatorTile::new)
@@ -80,17 +82,29 @@ public final class MekanismIntegration {
         }
     }
 
+    /** Avoids resolving any net.minecraft.client or Mekanism client classes on a dedicated server. */
     private static void registerClient(IEventBus modBus) {
         try {
-            MekanismClientIntegration.register(modBus);
-        } catch (NoClassDefFoundError error) {
-            throw new IllegalStateException("Mekanism client integration could not load", error);
+            Class<?> clientIntegration = Class.forName(CLIENT_INTEGRATION_CLASS);
+            Method register = clientIntegration.getMethod("register", IEventBus.class);
+            register.invoke(null, modBus);
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException exception) {
+            throw new IllegalStateException("Mekanism client integration could not load", exception);
+        } catch (InvocationTargetException exception) {
+            Throwable cause = exception.getCause();
+            if (cause instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            if (cause instanceof Error error) {
+                throw error;
+            }
+            throw new IllegalStateException("Mekanism client integration failed", cause);
         }
     }
 
     private static void addCreativeTabItems(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
-            event.accept(MOLTEN_FABRICATOR.getItemHolder());
+            event.accept(MOLTEN_FABRICATOR);
         }
     }
 
