@@ -89,12 +89,14 @@ public final class GeneratedDataPack {
     private static void prepareOptionalMekanismMachineData() throws IOException {
         Path lootTable = ROOT.resolve("data/mcmoltenmetals/loot_table/blocks/molten_fabricator.json");
         Path pickaxeTag = ROOT.resolve("data/minecraft/tags/block/mineable/pickaxe.json");
+        Path recipe = ROOT.resolve("data/mcmoltenmetals/recipe/molten_fabricator.json");
 
         if (!MekanismCompat.isLoaded()) {
             // A generated pack may survive between launches. Remove old machine references if
-            // Mekanism was present previously so registry/tag loading remains clean without it.
+            // Mekanism was present previously so registry/tag/recipe loading remains clean without it.
             Files.deleteIfExists(lootTable);
             Files.deleteIfExists(pickaxeTag);
+            Files.deleteIfExists(recipe);
             return;
         }
 
@@ -126,6 +128,37 @@ public final class GeneratedDataPack {
                   "values": [
                     "mcmoltenmetals:molten_fabricator"
                   ]
+                }
+                """);
+
+        // Match Mekanism's Metallurgic Infuser crafting recipe exactly, except for the result.
+        write(recipe, """
+                {
+                  "type": "minecraft:crafting_shaped",
+                  "category": "misc",
+                  "key": {
+                    "#": {
+                      "item": "minecraft:furnace"
+                    },
+                    "I": {
+                      "tag": "c:ingots/iron"
+                    },
+                    "O": {
+                      "tag": "c:ingots/osmium"
+                    },
+                    "R": {
+                      "tag": "c:dusts/redstone"
+                    }
+                  },
+                  "pattern": [
+                    "I#I",
+                    "ROR",
+                    "I#I"
+                  ],
+                  "result": {
+                    "count": 1,
+                    "id": "mcmoltenmetals:molten_fabricator"
+                  }
                 }
                 """);
     }
