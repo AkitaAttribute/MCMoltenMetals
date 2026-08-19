@@ -131,7 +131,8 @@ public final class GeneratedDataPack {
                 }
                 """);
 
-        // Match Mekanism's Metallurgic Infuser crafting recipe exactly, except for the result.
+        // Keep the Metallurgic Infuser shell recipe but replace its center osmium with
+        // Mekanism's basic fluid transporter to better represent the Fabricator's purpose.
         write(recipe, """
                 {
                   "type": "minecraft:crafting_shaped",
@@ -143,8 +144,8 @@ public final class GeneratedDataPack {
                     "I": {
                       "tag": "c:ingots/iron"
                     },
-                    "O": {
-                      "tag": "c:ingots/osmium"
+                    "P": {
+                      "item": "mekanism:basic_mechanical_pipe"
                     },
                     "R": {
                       "tag": "c:dusts/redstone"
@@ -152,7 +153,7 @@ public final class GeneratedDataPack {
                   },
                   "pattern": [
                     "I#I",
-                    "ROR",
+                    "RPR",
                     "I#I"
                   ],
                   "result": {
