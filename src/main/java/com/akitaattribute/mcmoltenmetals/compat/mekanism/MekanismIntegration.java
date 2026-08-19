@@ -8,6 +8,7 @@ import mekanism.api.text.ILangEntry;
 import mekanism.common.block.attribute.AttributeUpgradeSupport;
 import mekanism.common.block.prefab.BlockTile;
 import mekanism.common.capabilities.Capabilities;
+import mekanism.common.content.blocktype.BlockShapes;
 import mekanism.common.content.blocktype.Machine;
 import mekanism.common.content.blocktype.Machine.MachineBuilder;
 import mekanism.common.inventory.container.tile.MekanismTileContainer;
@@ -43,6 +44,7 @@ public final class MekanismIntegration {
             .createMachine(MekanismIntegration::tileType, Lang.MOLTEN_FABRICATOR)
             .withGui(MekanismIntegration::containerType)
             .withSideConfig(TransmissionType.FLUID)
+            .withCustomShape(BlockShapes.CHEMICAL_INFUSER)
             .without(AttributeUpgradeSupport.class)
             .build();
 
