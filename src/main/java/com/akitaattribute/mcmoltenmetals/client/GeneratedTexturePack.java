@@ -1,6 +1,7 @@
 package com.akitaattribute.mcmoltenmetals.client;
 
 import com.akitaattribute.mcmoltenmetals.MCMoltenMetals;
+import com.akitaattribute.mcmoltenmetals.compat.MekanismCompat;
 import com.akitaattribute.mcmoltenmetals.registry.MetalDefinition;
 import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
 import com.google.gson.Gson;
@@ -172,6 +173,12 @@ public final class GeneratedTexturePack {
             language.addProperty("fluid." + MCMoltenMetals.MOD_ID + "." + molten, display);
             language.addProperty("block." + MCMoltenMetals.MOD_ID + "." + molten, display);
             language.addProperty("item." + MCMoltenMetals.MOD_ID + "." + molten + "_bucket", display + " Bucket");
+        }
+
+        // The generated pack sits above the built-in assets. Include the optional machine name
+        // here as well so its translation remains present when Mekanism is installed.
+        if (MekanismCompat.isLoaded()) {
+            language.addProperty("block." + MCMoltenMetals.MOD_ID + ".molten_fabricator", "Molten Fabricator");
         }
 
         Path languagePath = PACK_ROOT.resolve("assets").resolve(MCMoltenMetals.MOD_ID)
