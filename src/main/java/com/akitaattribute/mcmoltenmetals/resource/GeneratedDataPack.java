@@ -1,6 +1,7 @@
 package com.akitaattribute.mcmoltenmetals.resource;
 
 import com.akitaattribute.mcmoltenmetals.MCMoltenMetals;
+import com.akitaattribute.mcmoltenmetals.compat.MekanismCompat;
 import com.akitaattribute.mcmoltenmetals.registry.MetalDefinition;
 import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
 import com.google.gson.Gson;
@@ -28,7 +29,7 @@ public final class GeneratedDataPack {
             {
               "pack": {
                 "pack_format": 48,
-                "description": "MC Molten Metals generated fluid tags"
+                "description": "MC Molten Metals generated data"
               }
             }
             """;
@@ -81,6 +82,52 @@ public final class GeneratedDataPack {
 
         write(ROOT.resolve("data/minecraft/tags/fluid/lava.json"), json);
         write(ROOT.resolve("data/c/tags/fluid/molten_metals.json"), json);
+
+        prepareOptionalMekanismMachineData();
+    }
+
+    private static void prepareOptionalMekanismMachineData() throws IOException {
+        Path lootTable = ROOT.resolve("data/mcmoltenmetals/loot_table/blocks/molten_fabricator.json");
+        Path pickaxeTag = ROOT.resolve("data/minecraft/tags/block/mineable/pickaxe.json");
+
+        if (!MekanismCompat.isLoaded()) {
+            // A generated pack may survive between launches. Remove old machine references if
+            // Mekanism was present previously so registry/tag loading remains clean without it.
+            Files.deleteIfExists(lootTable);
+            Files.deleteIfExists(pickaxeTag);
+            return;
+        }
+
+        write(lootTable, """
+                {
+                  "type": "minecraft:block",
+                  "pools": [
+                    {
+                      "bonus_rolls": 0.0,
+                      "conditions": [
+                        { "condition": "minecraft:survives_explosion" }
+                      ],
+                      "entries": [
+                        {
+                          "type": "minecraft:item",
+                          "name": "mcmoltenmetals:molten_fabricator"
+                        }
+                      ],
+                      "rolls": 1.0
+                    }
+                  ],
+                  "random_sequence": "mcmoltenmetals:blocks/molten_fabricator"
+                }
+                """);
+
+        write(pickaxeTag, """
+                {
+                  "replace": false,
+                  "values": [
+                    "mcmoltenmetals:molten_fabricator"
+                  ]
+                }
+                """);
     }
 
     private static void write(Path path, String content) throws IOException {
