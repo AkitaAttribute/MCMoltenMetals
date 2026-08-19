@@ -3,6 +3,8 @@ package com.akitaattribute.mcmoltenmetals.compat;
 import com.akitaattribute.mcmoltenmetals.MCMoltenMetals;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Optional;
+import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModList;
 
@@ -44,6 +46,26 @@ public final class MekanismCompat {
                 throw error;
             }
             throw new IllegalStateException("Mekanism integration initialization failed", cause);
+        }
+    }
+
+    /**
+     * Resolves the optional Fabricator item without placing a Mekanism class in this method's
+     * signature or constant pool. If Mekanism is absent, the item simply does not exist.
+     */
+    public static Optional<Item> fabricatorItem() {
+        if (!isLoaded()) {
+            return Optional.empty();
+        }
+
+        try {
+            Class<?> integration = Class.forName(INTEGRATION_CLASS);
+            Object blockRegistryObject = integration.getField("MOLTEN_FABRICATOR").get(null);
+            Object resolvedItem = blockRegistryObject.getClass().getMethod("asItem").invoke(blockRegistryObject);
+            return resolvedItem instanceof Item item ? Optional.of(item) : Optional.empty();
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            MCMoltenMetals.LOGGER.error("Could not resolve optional Molten Fabricator item", exception);
+            return Optional.empty();
         }
     }
 }
