@@ -18,6 +18,7 @@ NeoForge 1.21.1 mod that discovers metal materials at startup and registers pale
 - Generated texture signatures include the source metal artwork and lava/bucket templates. Unchanged generated assets are reused on startup/resource reload.
 - JEI can display the registered bucket items/fluids. No data-pack melting or casting recipes are included yet.
 - `/mcmoltenmetals <metal>` gives the corresponding `Molten <Metal> Bucket` and requires no operator permission.
+- `/mcmoltenmetals fabricator` gives the optional Molten Fabricator when Mekanism is installed, also without operator permission.
 
 ## Optional Mekanism integration
 
@@ -31,6 +32,7 @@ The first-pass Molten Fabricator behavior is:
 - A copper or iron ingot/raw item selects the output metal but is not consumed. Common `c:` tags, legacy `forge:` tags, and conventional item IDs are recognized.
 - One operation currently converts 1,000 mB lava + 1 diorite into 1,000 mB of the selected molten copper or molten iron over five seconds.
 - The output buffer cannot mix fluids, so changing the selector while another molten metal remains buffered simply pauses processing until the output tank is emptied.
-- The machine currently has no crafting recipe; it is available from the Functional Blocks creative tab for testing.
+- The crafting recipe matches Mekanism's Metallurgic Infuser recipe exactly, with the result changed to the Molten Fabricator: `I#I / ROR / I#I`, where `I` is an iron ingot, `#` is a furnace, `R` is redstone dust, and `O` is an osmium ingot.
+- The placed block and inventory item inherit Mekanism's Chemical Infuser model, so the exterior appearance is the same as the Chemical Infuser while remaining a distinct `mcmoltenmetals:molten_fabricator` block/item.
 
-Generated client assets are stored under `config/mcmoltenmetals/generated_resource_pack`. Generated lava fluid tags are stored under `config/mcmoltenmetals/generated_data_pack`.
+Generated client assets are stored under `config/mcmoltenmetals/generated_resource_pack`. Generated lava fluid tags and optional Fabricator server data are stored under `config/mcmoltenmetals/generated_data_pack`.
