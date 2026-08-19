@@ -1,9 +1,19 @@
 {
-  "multipart": [
-    {
-      "apply": {
-        "model": "mcmoltenmetals:block/molten_fabricator"
-      }
+  "variants": {
+    "facing=north": {
+      "model": "mcmoltenmetals:block/molten_fabricator"
+    },
+    "facing=south": {
+      "model": "mcmoltenmetals:block/molten_fabricator",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "mcmoltenmetals:block/molten_fabricator",
+      "y": 90
+    },
+    "facing=west": {
+      "model": "mcmoltenmetals:block/molten_fabricator",
+      "y": -90
     }
-  ]
+  }
 }
