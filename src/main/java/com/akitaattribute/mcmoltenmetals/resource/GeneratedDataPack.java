@@ -100,6 +100,8 @@ public final class GeneratedDataPack {
             return;
         }
 
+        // Match Mekanism machine drops: the dropped Fabricator carries its container and
+        // configuration components, so placing it again restores items, fluids, energy and IO state.
         write(lootTable, """
                 {
                   "type": "minecraft:block",
@@ -112,6 +114,27 @@ public final class GeneratedDataPack {
                       "entries": [
                         {
                           "type": "minecraft:item",
+                          "functions": [
+                            {
+                              "function": "minecraft:copy_name",
+                              "source": "block_entity"
+                            },
+                            {
+                              "function": "minecraft:copy_components",
+                              "include": [
+                                "mekanism:ejector",
+                                "mekanism:owner",
+                                "mekanism:redstone_control",
+                                "mekanism:security",
+                                "mekanism:side_config",
+                                "mekanism:upgrades",
+                                "mekanism:energy",
+                                "mekanism:items",
+                                "mekanism:fluids"
+                              ],
+                              "source": "block_entity"
+                            }
+                          ],
                           "name": "mcmoltenmetals:molten_fabricator"
                         }
                       ],

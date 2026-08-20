@@ -5,9 +5,7 @@ import com.akitaattribute.mcmoltenmetals.compat.mekanism.tile.MoltenFabricatorTi
 import com.akitaattribute.mcmoltenmetals.simulation.MoltenFabricatorMachine;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.List;
 import mekanism.api.energy.IEnergyConversionHelper;
-import mekanism.api.inventory.IInventorySlot;
 import mekanism.api.text.ILangEntry;
 import mekanism.common.block.attribute.AttributeUpgradeSupport;
 import mekanism.common.block.prefab.BlockTile;
@@ -24,19 +22,13 @@ import mekanism.common.registration.impl.ContainerTypeRegistryObject;
 import mekanism.common.registration.impl.TileEntityTypeDeferredRegister;
 import mekanism.common.registration.impl.TileEntityTypeRegistryObject;
 import mekanism.common.tile.base.TileEntityMekanism;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
-import org.jetbrains.annotations.NotNull;
 
 /** Mekanism-native machine registration. This class is never loaded unless Mekanism is present. */
 public final class MekanismIntegration {
@@ -62,22 +54,7 @@ public final class MekanismIntegration {
 
     public static final BlockRegistryObject<BlockTile<MoltenFabricatorTile, Machine<MoltenFabricatorTile>>, BlockItem> MOLTEN_FABRICATOR =
             BLOCKS.register(MACHINE_NAME,
-                    () -> new BlockTile<>(MOLTEN_FABRICATOR_TYPE, properties -> properties.mapColor(MapColor.COLOR_GRAY)) {
-                        @Override
-                        protected void onRemove(
-                                @NotNull BlockState state,
-                                @NotNull Level world,
-                                @NotNull BlockPos pos,
-                                @NotNull BlockState newState,
-                                boolean isMoving) {
-                            if (!state.is(newState.getBlock()) && !world.isClientSide) {
-                                if (world.getBlockEntity(pos) instanceof MoltenFabricatorTile fabricator) {
-                                    dropFabricatorItems(world, pos, fabricator);
-                                }
-                            }
-                            super.onRemove(state, world, pos, newState, isMoving);
-                        }
-                    });
+                    () -> new BlockTile<>(MOLTEN_FABRICATOR_TYPE, properties -> properties.mapColor(MapColor.COLOR_GRAY)));
 
     public static final TileEntityTypeRegistryObject<MoltenFabricatorTile> MOLTEN_FABRICATOR_TILE = TILE_TYPES
             .mekBuilder(MOLTEN_FABRICATOR, MoltenFabricatorTile::new)
@@ -90,30 +67,6 @@ public final class MekanismIntegration {
             CONTAINER_TYPES.register(MACHINE_NAME, MoltenFabricatorTile.class);
 
     private MekanismIntegration() {
-    }
-
-    private static void dropFabricatorItems(Level world, BlockPos pos, MoltenFabricatorTile fabricator) {
-        List<IInventorySlot> slots = List.of(
-                fabricator.inputContainerSlot,
-                fabricator.containerOutputSlot,
-                fabricator.dioriteSlot,
-                fabricator.materialSlot,
-                fabricator.energySlot,
-                fabricator.itemOutputSlot);
-        for (IInventorySlot slot : slots) {
-            ItemStack stack = slot.getStack();
-            if (stack.isEmpty()) {
-                continue;
-            }
-            ItemStack dropped = stack.copy();
-            slot.setStack(ItemStack.EMPTY);
-            world.addFreshEntity(new ItemEntity(
-                    world,
-                    pos.getX() + 0.5,
-                    pos.getY() + 0.5,
-                    pos.getZ() + 0.5,
-                    dropped));
-        }
     }
 
     private static long energyUsageJoules() {
