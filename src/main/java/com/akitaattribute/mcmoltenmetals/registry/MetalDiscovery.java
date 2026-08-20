@@ -1,6 +1,7 @@
 package com.akitaattribute.mcmoltenmetals.registry;
 
 import com.akitaattribute.mcmoltenmetals.MCMoltenMetals;
+import com.akitaattribute.mcmoltenmetals.config.FabricatorRecipeConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -21,7 +22,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -41,15 +41,11 @@ public final class MetalDiscovery {
      * fallback artwork sources only when usable ingot artwork cannot be resolved; they never
      * establish standalone molten-metal identities.
      */
-    private static final String DISCOVERY_VERSION = "material-discovery-v7-source-exclusions";
+    private static final String DISCOVERY_VERSION = "material-discovery-v8-config-source-exclusions";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CACHE_PATH = FMLPaths.CONFIGDIR.get()
             .resolve(MCMoltenMetals.MOD_ID)
             .resolve("metal-discovery-cache.json");
-
-    // Known items that are placed in metal-style common tags by other mods but are not actually ingots/metals.
-    private static final Set<ResourceLocation> EXCLUDED_MOLTEN_SOURCES = Set.of(
-            ResourceLocation.fromNamespaceAndPath("pixelmon", "crystal"));
 
     private static final Pattern COMMON_TAG = Pattern.compile(
             "^data/(?:c|forge)/tags/(?:item|items)/(ingots|raw_materials|ores)/([^/]+)\\.json$");
@@ -246,7 +242,7 @@ public final class MetalDiscovery {
     }
 
     private static boolean isExcludedMoltenSource(ResourceLocation location) {
-        return EXCLUDED_MOLTEN_SOURCES.contains(location);
+        return FabricatorRecipeConfig.isMoltenSourceExcluded(location);
     }
 
     private static Candidate candidate(Map<String, Candidate> candidates, String material) {
@@ -257,6 +253,9 @@ public final class MetalDiscovery {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             update(digest, DISCOVERY_VERSION);
+            FabricatorRecipeConfig.moltenSourceExclusions().stream()
+                    .sorted()
+                    .forEach(value -> update(digest, "excluded-source:" + value));
 
             List<String> files = new ArrayList<>();
             for (var modFileInfo : ModList.get().getModFiles()) {

@@ -24,9 +24,9 @@ public final class MCMoltenMetals {
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     public MCMoltenMetals(IEventBus modBus, ModContainer modContainer) {
+        FabricatorRecipeConfig.initialize();
         var definitions = MetalDiscovery.loadOrDiscover();
         MoltenMetalRegistry.register(modBus, definitions);
-        FabricatorRecipeConfig.initialize();
         MekanismCompat.bootstrap(modBus);
 
         modBus.addListener(GeneratedDataPack::register);
