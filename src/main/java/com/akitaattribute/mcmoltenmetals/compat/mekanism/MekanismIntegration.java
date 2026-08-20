@@ -30,9 +30,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 
-/**
- * Mekanism-native machine registration. This class is never loaded unless Mekanism is present.
- */
+/** Mekanism-native machine registration. This class is never loaded unless Mekanism is present. */
 public final class MekanismIntegration {
     public static final String MACHINE_NAME = "molten_fabricator";
     public static final long FE_PER_TICK = MoltenFabricatorMachine.ENERGY_PER_TICK_FE;
@@ -49,7 +47,7 @@ public final class MekanismIntegration {
             .createMachine(MekanismIntegration::tileType, Lang.MOLTEN_FABRICATOR)
             .withGui(MekanismIntegration::containerType)
             .withEnergyConfig(MekanismIntegration::energyUsageJoules, MekanismIntegration::energyStorageJoules)
-            .withSideConfig(TransmissionType.FLUID, TransmissionType.ENERGY)
+            .withSideConfig(TransmissionType.ITEM, TransmissionType.FLUID, TransmissionType.ENERGY)
             .withCustomShape(BlockShapes.CHEMICAL_INFUSER)
             .without(AttributeUpgradeSupport.class)
             .build();

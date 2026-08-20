@@ -2,6 +2,7 @@ package com.akitaattribute.mcmoltenmetals;
 
 import com.akitaattribute.mcmoltenmetals.command.MoltenMetalCommand;
 import com.akitaattribute.mcmoltenmetals.compat.MekanismCompat;
+import com.akitaattribute.mcmoltenmetals.config.FabricatorRecipeConfig;
 import com.akitaattribute.mcmoltenmetals.fluid.MoltenEntityEvents;
 import com.akitaattribute.mcmoltenmetals.registry.MetalDiscovery;
 import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
@@ -25,6 +26,7 @@ public final class MCMoltenMetals {
     public MCMoltenMetals(IEventBus modBus, ModContainer modContainer) {
         var definitions = MetalDiscovery.loadOrDiscover();
         MoltenMetalRegistry.register(modBus, definitions);
+        FabricatorRecipeConfig.initialize();
         MekanismCompat.bootstrap(modBus);
 
         modBus.addListener(GeneratedDataPack::register);
@@ -41,9 +43,7 @@ public final class MCMoltenMetals {
 
     private void addCreativeTabItems(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            for (MoltenMetalRegistry.MoltenMetal metal : MoltenMetalRegistry.metals()) {
-                event.accept(metal.bucket().get());
-            }
+            for (MoltenMetalRegistry.MoltenMetal metal : MoltenMetalRegistry.metals()) event.accept(metal.bucket().get());
         }
     }
 }
