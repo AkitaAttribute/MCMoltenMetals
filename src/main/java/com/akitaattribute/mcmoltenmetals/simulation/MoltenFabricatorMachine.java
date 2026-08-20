@@ -13,7 +13,7 @@ public final class MoltenFabricatorMachine {
     public static final int OUTPUT_PER_OPERATION_MB = 1_000;
     public static final int RAW_PER_OPERATION = 50;
     public static final int RAW_OUTPUT_MB = 7_500;
-    public static final int INGOT_MOLTEN_MB = 150;
+    public static final int INGOT_MOLTEN_MB = 100;
     public static final int TICKS_REQUIRED = 5 * SharedConstants.TICKS_PER_SECOND;
     public static final int DIORITE_CAPACITY = 64;
 

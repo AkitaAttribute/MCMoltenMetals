@@ -18,6 +18,7 @@ import net.neoforged.fml.loading.FMLPaths;
 /** Runtime JSON exclusions for automatically discovered Molten Fabricator recipes. */
 public final class FabricatorRecipeConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final int CONFIG_VERSION = 2;
     private static final Path PATH = FMLPaths.CONFIGDIR.get()
             .resolve(MCMoltenMetals.MOD_ID)
             .resolve("fabricator-recipes.json");
@@ -36,11 +37,22 @@ public final class FabricatorRecipeConfig {
         }
         try {
             JsonObject root = JsonParser.parseString(Files.readString(PATH, StandardCharsets.UTF_8)).getAsJsonObject();
-            settings = new Settings(
+            int version = root.has("version") ? root.get("version").getAsInt() : 1;
+            Settings loaded = new Settings(
                     readExclusions(root, "lava_to_molten", defaults.lavaToMolten()),
                     readExclusions(root, "raw_to_molten", defaults.rawToMolten()),
                     readExclusions(root, "molten_to_ingot", defaults.moltenToIngot()),
                     readExclusions(root, "steelmaking", defaults.steelmaking()));
+            if (version < CONFIG_VERSION) {
+                // Version 2 adds safety defaults for materials whose normal progression does not use raw-metal smelting.
+                Set<String> raw = new LinkedHashSet<>(loaded.rawToMolten());
+                raw.add("refined_obsidian");
+                raw.add("refined_glowstone");
+                raw.add("uranium");
+                loaded = new Settings(loaded.lavaToMolten(), raw, loaded.moltenToIngot(), loaded.steelmaking());
+                write(loaded);
+            }
+            settings = loaded;
         } catch (Exception exception) {
             settings = defaults;
             MCMoltenMetals.LOGGER.error("Could not read {}; using default Fabricator recipe exclusions", PATH, exception);
@@ -86,6 +98,7 @@ public final class FabricatorRecipeConfig {
         try {
             Files.createDirectories(PATH.getParent());
             JsonObject root = new JsonObject();
+            root.addProperty("version", CONFIG_VERSION);
             root.addProperty("description", "Metal ids listed here are excluded only from the named Molten Fabricator recipe family.");
             root.add("lava_to_molten", section(value.lavaToMolten()));
             root.add("raw_to_molten", section(value.rawToMolten()));
@@ -129,7 +142,11 @@ public final class FabricatorRecipeConfig {
         }
 
         private static Settings defaults() {
-            return new Settings(Set.of(), Set.of("netherite", "steel"), Set.of(), Set.of());
+            return new Settings(
+                    Set.of(),
+                    Set.of("netherite", "steel", "refined_obsidian", "refined_glowstone", "uranium"),
+                    Set.of(),
+                    Set.of());
         }
     }
 }

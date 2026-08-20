@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -40,11 +41,15 @@ public final class MetalDiscovery {
      * fallback artwork sources only when usable ingot artwork cannot be resolved; they never
      * establish standalone molten-metal identities.
      */
-    private static final String DISCOVERY_VERSION = "material-discovery-v6-ingot-palette";
+    private static final String DISCOVERY_VERSION = "material-discovery-v7-source-exclusions";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CACHE_PATH = FMLPaths.CONFIGDIR.get()
             .resolve(MCMoltenMetals.MOD_ID)
             .resolve("metal-discovery-cache.json");
+
+    // Known items that are placed in metal-style common tags by other mods but are not actually ingots/metals.
+    private static final Set<ResourceLocation> EXCLUDED_MOLTEN_SOURCES = Set.of(
+            ResourceLocation.fromNamespaceAndPath("pixelmon", "crystal"));
 
     private static final Pattern COMMON_TAG = Pattern.compile(
             "^data/(?:c|forge)/tags/(?:item|items)/(ingots|raw_materials|ores)/([^/]+)\\.json$");
@@ -80,6 +85,9 @@ public final class MetalDiscovery {
 
     private static void discoverAlreadyRegisteredItems(Map<String, Candidate> candidates) {
         for (ResourceLocation itemId : BuiltInRegistries.ITEM.keySet()) {
+            if (isExcludedMoltenSource(itemId)) {
+                continue;
+            }
             String itemName = fileName(itemId.getPath());
             if (itemName.endsWith("_ingot") && itemName.length() > "_ingot".length()) {
                 String material = normalizeMaterial(itemName.substring(0, itemName.length() - "_ingot".length()));
@@ -153,9 +161,9 @@ public final class MetalDiscovery {
             }
 
             Candidate candidate = candidate(candidates, material);
+            boolean ingotCategory = "ingots".equals(category);
             int priority;
-            if ("ingots".equals(category)) {
-                candidate.markIngot();
+            if (ingotCategory) {
                 priority = 0;
             } else if ("raw_materials".equals(category)) {
                 priority = 20;
@@ -165,7 +173,10 @@ public final class MetalDiscovery {
 
             byte[] content = bytes.get();
             if (content != null) {
-                addTagValues(candidate, content, priority);
+                boolean hasAllowedValue = addTagValues(candidate, content, priority);
+                if (ingotCategory && hasAllowedValue) {
+                    candidate.markIngot();
+                }
             }
             return;
         }
@@ -178,33 +189,35 @@ public final class MetalDiscovery {
         String namespace = assetMatcher.group(1);
         String itemPath = assetMatcher.group(2);
         String itemName = fileName(itemPath);
+        ResourceLocation itemId = safeLocation(namespace, itemPath);
+        if (itemId == null || isExcludedMoltenSource(itemId)) {
+            return;
+        }
         if (itemName.endsWith("_ingot") && itemName.length() > "_ingot".length()) {
             String material = normalizeMaterial(itemName.substring(0, itemName.length() - "_ingot".length()));
-            ResourceLocation itemId = safeLocation(namespace, itemPath);
-            if (!material.isEmpty() && itemId != null) {
+            if (!material.isEmpty()) {
                 candidate(candidates, material).markIngot().addSource(itemId, 10);
             }
         } else if (itemName.startsWith("raw_") && itemName.length() > "raw_".length()) {
             String material = normalizeMaterial(itemName.substring("raw_".length()));
-            ResourceLocation itemId = safeLocation(namespace, itemPath);
-            if (!material.isEmpty() && itemId != null) {
+            if (!material.isEmpty()) {
                 candidate(candidates, material).addSource(itemId, 30);
             }
         } else if (itemName.endsWith("_scrap") && itemName.length() > "_scrap".length()) {
             String material = normalizeMaterial(itemName.substring(0, itemName.length() - "_scrap".length()));
-            ResourceLocation itemId = safeLocation(namespace, itemPath);
-            if (!material.isEmpty() && itemId != null) {
+            if (!material.isEmpty()) {
                 candidate(candidates, material).addSource(itemId, 35);
             }
         }
     }
 
-    private static void addTagValues(Candidate candidate, byte[] content, int priority) {
+    private static boolean addTagValues(Candidate candidate, byte[] content, int priority) {
+        boolean hasAllowedValue = false;
         try {
             JsonObject root = JsonParser.parseString(new String(content, StandardCharsets.UTF_8)).getAsJsonObject();
             JsonArray values = root.getAsJsonArray("values");
             if (values == null) {
-                return;
+                return false;
             }
             for (JsonElement value : values) {
                 String id = null;
@@ -213,16 +226,27 @@ public final class MetalDiscovery {
                 } else if (value.isJsonObject() && value.getAsJsonObject().has("id")) {
                     id = value.getAsJsonObject().get("id").getAsString();
                 }
-                if (id == null || id.startsWith("#")) {
+                if (id == null) {
+                    continue;
+                }
+                if (id.startsWith("#")) {
+                    // Nested common tags are valid evidence even though we do not recursively enumerate them here.
+                    hasAllowedValue = true;
                     continue;
                 }
                 ResourceLocation location = safeLocation(id);
-                if (location != null) {
+                if (location != null && !isExcludedMoltenSource(location)) {
                     candidate.addSource(location, priority);
+                    hasAllowedValue = true;
                 }
             }
         } catch (Exception ignored) {
         }
+        return hasAllowedValue;
+    }
+
+    private static boolean isExcludedMoltenSource(ResourceLocation location) {
+        return EXCLUDED_MOLTEN_SOURCES.contains(location);
     }
 
     private static Candidate candidate(Map<String, Candidate> candidates, String material) {
@@ -274,7 +298,7 @@ public final class MetalDiscovery {
                 List<ResourceLocation> sources = new ArrayList<>();
                 for (JsonElement source : metal.getAsJsonArray("sourceItems")) {
                     ResourceLocation location = safeLocation(source.getAsString());
-                    if (location != null) {
+                    if (location != null && !isExcludedMoltenSource(location)) {
                         sources.add(location);
                     }
                 }
