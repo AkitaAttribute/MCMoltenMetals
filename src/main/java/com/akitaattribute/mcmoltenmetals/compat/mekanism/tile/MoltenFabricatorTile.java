@@ -119,14 +119,15 @@ public class MoltenFabricatorTile extends TileEntityConfigurableMachine implemen
     protected IInventorySlotHolder getInitialInventory(IContentsListener listener) {
         InventorySlotHelper builder = InventorySlotHelper.forSideWithConfig(this);
         // Keep the original first five slot indexes stable for existing worlds; item output is appended.
+        // The lower row is aligned at y=49 so the cast-mode control has its own row below it.
         builder.addSlot(inputContainerSlot = FluidInventorySlot.fill(inputTank, listener, 28, 20));
-        builder.addSlot(containerOutputSlot = OutputInventorySlot.at(listener, 28, 51));
+        builder.addSlot(containerOutputSlot = OutputInventorySlot.at(listener, 28, 49));
         builder.addSlot(dioriteSlot = InputInventorySlot.at(
                 stack -> stack.is(Blocks.DIORITE.asItem()), listener, 64, 17));
         builder.addSlot(materialSlot = InputInventorySlot.at(
-                MoltenFabricatorRecipes::isAcceptedMaterial, listener, 64, 53));
+                MoltenFabricatorRecipes::isAcceptedMaterial, listener, 64, 49));
         builder.addSlot(energySlot = EnergyInventorySlot.fillOrConvert(
-                energyContainer, this::getLevel, listener, 105, 53));
+                energyContainer, this::getLevel, listener, 105, 49));
         builder.addSlot(itemOutputSlot = OutputInventorySlot.at(listener, 105, 17));
         return builder.build();
     }
