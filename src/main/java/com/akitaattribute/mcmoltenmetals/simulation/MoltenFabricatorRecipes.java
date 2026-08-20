@@ -163,13 +163,16 @@ public final class MoltenFabricatorRecipes {
         if (stack.isEmpty()) {
             return "";
         }
-        if (stack.getFluid() == Fluids.LAVA || stack.is(net.minecraft.tags.FluidTags.LAVA)) {
-            return "lava";
-        }
+        // Our molten fluids intentionally live in minecraft:lava for vanilla lava behavior.
+        // Resolve their distinct identity before using the lava tag as a fallback, otherwise
+        // the loaded Mekanism adapter would collapse Molten Iron/etc. into actual vanilla lava.
         for (MoltenMetalRegistry.MoltenMetal metal : MoltenMetalRegistry.metals()) {
             if (stack.getFluid() == metal.source().get() || stack.getFluid() == metal.flowing().get()) {
                 return metal.definition().id();
             }
+        }
+        if (stack.getFluid() == Fluids.LAVA || stack.is(net.minecraft.tags.FluidTags.LAVA)) {
+            return "lava";
         }
         return "";
     }
