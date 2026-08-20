@@ -154,7 +154,9 @@ public final class MoltenFabricatorRecipes {
     public static boolean isAcceptedInputKey(String key) {
         String normalized = normalize(key);
         if (normalized.equals("lava")) {
-            return lavaRecipeAllowed("copper") || lavaRecipeAllowed("iron");
+            // Storage validity must not depend on whether a complete/allowed recipe can run.
+            // The logical machine performs recipe validation after the fluid is already stored.
+            return true;
         }
         return castingRecipeAllowed(normalized) || (normalized.equals("iron") && steelmakingAllowed());
     }
