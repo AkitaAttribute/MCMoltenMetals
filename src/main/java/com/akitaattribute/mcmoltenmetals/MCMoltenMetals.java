@@ -8,6 +8,7 @@ import com.akitaattribute.mcmoltenmetals.registry.MetalDiscovery;
 import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
 import com.akitaattribute.mcmoltenmetals.resource.GeneratedDataPack;
 import com.akitaattribute.mcmoltenmetals.simulation.OfflineMachineRegistry;
+import com.akitaattribute.mcmoltenmetals.worldgen.MoltenWorldgen;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.bus.api.IEventBus;
@@ -27,6 +28,7 @@ public final class MCMoltenMetals {
         FabricatorRecipeConfig.initialize();
         var definitions = MetalDiscovery.loadOrDiscover();
         MoltenMetalRegistry.register(modBus, definitions);
+        MoltenWorldgen.register(modBus);
         MekanismCompat.bootstrap(modBus);
 
         modBus.addListener(GeneratedDataPack::register);

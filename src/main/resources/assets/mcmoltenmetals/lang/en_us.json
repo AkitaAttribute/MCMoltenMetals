@@ -3,5 +3,7 @@
   "container.mcmoltenmetals.molten_fabricator": "Molten Fabricator",
   "gui.mcmoltenmetals.fabricator.mode": "Cast: %s",
   "gui.mcmoltenmetals.fabricator.mode_ingot": "Ingot",
-  "gui.mcmoltenmetals.fabricator.mode_steel": "Steel"
+  "gui.mcmoltenmetals.fabricator.mode_steel": "Steel",
+  "biome.mcmoltenmetals.molten_grotto": "Molten Grotto",
+  "generator.mcmoltenmetals.molten_nether_test": "Molten Nether Test"
 }

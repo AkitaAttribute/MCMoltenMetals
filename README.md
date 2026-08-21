@@ -21,6 +21,16 @@ NeoForge 1.21.1 mod that discovers metal materials at startup and registers pale
 - `/mcmoltenmetals <metal>` gives the corresponding `Molten <Metal> Bucket` and requires no operator permission.
 - `/mcmoltenmetals fabricator` gives the optional Molten Fabricator when Mekanism is installed, also without operator permission.
 
+## Molten Grotto worldgen
+
+The built-in worldgen module adds a **Molten Grotto** Nether biome intended to be separable into a future addon that depends only on the molten-metal registry. It has no Fabricator or Mekanism dependency.
+
+- Pools use a custom feature that chooses one discovered molten metal per distinct pool. The full pool keeps that identity and generation rejects nearby fluids to avoid mixed molten shorelines.
+- The Lush Caves clay/pool idea is translated to Nether materials: pool basins and banks use soul sand, cave-vine/dripleaf-style vegetation is replaced by vanilla weeping and twisting vines, and glowstone fills the luminous ceiling-decoration role.
+- Pool placement is deliberately vertically sparse for Nether-scale generation: 12 attempts per chunk across Y 8-120 instead of Lush Caves' much denser full-height pool placement.
+- `Molten Nether Test` is exposed in the vanilla Create World world-type selector. Its logical overworld uses Nether terrain/dimension rules so a new test world starts directly in Nether terrain, while the biome source deliberately gives Molten Grotto several climate points so it is much easier to find during development.
+- The ordinary vanilla Nether preset is not overridden. Vanilla's `minecraft:nether` multi-noise preset is hardcoded, so production insertion at roughly Soul Sand Valley frequency is kept as a separate integration boundary rather than replacing `minecraft:normal` and creating broad worldgen compatibility problems.
+
 ## Optional Mekanism integration
 
 When Mekanism is installed, MC Molten Metals additionally registers a **Molten Fabricator**. Mekanism is an optional dependency: the integration classes are not loaded and the machine is not registered when Mekanism is absent.
