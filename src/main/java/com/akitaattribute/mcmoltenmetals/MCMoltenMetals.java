@@ -34,6 +34,7 @@ public final class MCMoltenMetals {
         modBus.addListener(GeneratedDataPack::register);
         modBus.addListener(this::addCreativeTabItems);
         NeoForge.EVENT_BUS.addListener(MoltenMetalCommand::register);
+        NeoForge.EVENT_BUS.addListener(MoltenEntityEvents::onEntityTick);
         NeoForge.EVENT_BUS.addListener(MoltenEntityEvents::onTagsUpdated);
         NeoForge.EVENT_BUS.addListener(OfflineMachineRegistry::onServerTick);
     }

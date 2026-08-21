@@ -5,15 +5,29 @@ import com.akitaattribute.mcmoltenmetals.registry.MoltenMetalRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.world.entity.Entity;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
+import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
 /**
- * Molten metals are injected into minecraft:lava by the generated data pack, so vanilla's
- * own lava-contact path is authoritative for entity damage, fire, and fall-distance behavior.
- * This listener only verifies that the generated tag binding is present after a tag reload.
+ * NeoForge 1.21.1 tracks custom FluidTypes separately from its built-in lava FluidType.
+ * Consequently Entity#isInLava() does not become true merely because a custom fluid is in
+ * minecraft:lava. Use NeoForge's already-computed fluid-height intersection for molten damage,
+ * while leaving movement and fall-distance handling to the normal FluidType path.
  */
 public final class MoltenEntityEvents {
     private MoltenEntityEvents() {
+    }
+
+    public static void onEntityTick(EntityTickEvent.Post event) {
+        Entity entity = event.getEntity();
+        boolean touchingMolten = entity.isInFluidType(
+                (fluidType, height) -> fluidType instanceof MoltenFluidType && height > 0.0D,
+                false);
+
+        if (touchingMolten) {
+            entity.lavaHurt();
+        }
     }
 
     public static void onTagsUpdated(TagsUpdatedEvent event) {
@@ -33,7 +47,7 @@ public final class MoltenEntityEvents {
         if (!missing.isEmpty()) {
             MCMoltenMetals.LOGGER.warn(
                     "Molten fluids missing from minecraft:lava after tag reload: {}. "
-                            + "Vanilla tag-driven lava behavior may differ until the tag is restored.",
+                            + "Direct molten-contact damage still works, but other tag-driven lava behavior may differ.",
                     missing);
         }
     }

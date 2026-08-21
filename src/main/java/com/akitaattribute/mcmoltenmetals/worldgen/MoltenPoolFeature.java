@@ -46,8 +46,6 @@ public final class MoltenPoolFeature extends Feature<NoneFeatureConfiguration> {
             return false;
         }
 
-        // Small pools fit Nether cave floors much more reliably than the previous 8-14 block
-        // perfect ellipse. The footprint is still broad enough to read as a distinct pool.
         int radiusX = 2 + random.nextInt(3);
         int radiusZ = 2 + random.nextInt(3);
         int poolY = centerFloor.getY();
@@ -63,7 +61,7 @@ public final class MoltenPoolFeature extends Feature<NoneFeatureConfiguration> {
                 }
 
                 BlockPos pos = new BlockPos(centerFloor.getX() + dx, poolY, centerFloor.getZ() + dz);
-                if (canBuildColumn(level, pos)) {
+                if (canBuildRecessedColumn(level, pos)) {
                     candidates.add(pos);
                 }
             }
@@ -74,14 +72,11 @@ public final class MoltenPoolFeature extends Feature<NoneFeatureConfiguration> {
             return false;
         }
 
-        // A pool cell is only retained when every exposed horizontal edge can receive a rim.
-        // This lets the feature reshape uneven cave floors while still preventing lava-like
-        // molten fluids from immediately escaping down an unsupported ledge.
         Set<BlockPos> unsupportedEdges = new HashSet<>();
         for (BlockPos pos : pool) {
             for (int[] offset : HORIZONTAL_NEIGHBORS) {
                 BlockPos neighbor = pos.offset(offset[0], 0, offset[1]);
-                if (!pool.contains(neighbor) && !canBuildColumn(level, neighbor)) {
+                if (!pool.contains(neighbor) && !canBuildRecessedColumn(level, neighbor)) {
                     unsupportedEdges.add(pos);
                     break;
                 }
@@ -103,10 +98,7 @@ public final class MoltenPoolFeature extends Feature<NoneFeatureConfiguration> {
             }
         }
 
-        // Only direct contact matters. The old implementation rejected an entire large area if
-        // any fluid was within several blocks, which made normal Nether lava suppress almost all
-        // molten-pool attempts.
-        if (touchesExternalFluid(level, pool, rim)) {
+        if (touchesExternalFluid(level, pool)) {
             return false;
         }
 
@@ -116,14 +108,18 @@ public final class MoltenPoolFeature extends Feature<NoneFeatureConfiguration> {
         BlockState molten = metals.get(random.nextInt(metals.size()))
                 .source().get().defaultFluidState().createLegacyBlock();
 
+        // Soul sand is shorter than a full block. Keeping a source fluid at the same Y as the
+        // rim lets a player's bounding box overlap the neighboring fluid while standing on the
+        // rim. Recess the actual molten surface by one block so the rim is safely above it.
         for (BlockPos pos : rim) {
             clearReplaceableHeadroom(level, pos.above());
             level.setBlock(pos, soulSand, 2);
         }
-        for (BlockPos pos : pool) {
-            clearReplaceableHeadroom(level, pos.above());
-            level.setBlock(pos.below(), soulSand, 2);
-            level.setBlock(pos, molten, 2);
+        for (BlockPos surfacePos : pool) {
+            clearReplaceableHeadroom(level, surfacePos.above());
+            level.setBlock(surfacePos, Blocks.AIR.defaultBlockState(), 2);
+            level.setBlock(surfacePos.below(2), soulSand, 2);
+            level.setBlock(surfacePos.below(), molten, 2);
         }
 
         placeGlowstoneAccent(level, centerFloor, random);
@@ -170,16 +166,20 @@ public final class MoltenPoolFeature extends Feature<NoneFeatureConfiguration> {
                 && level.getFluidState(pos.above()).isEmpty();
     }
 
-    private static boolean canBuildColumn(WorldGenLevel level, BlockPos pos) {
-        BlockState at = level.getBlockState(pos);
-        BlockState below = level.getBlockState(pos.below());
-        BlockState above = level.getBlockState(pos.above());
+    private static boolean canBuildRecessedColumn(WorldGenLevel level, BlockPos surfacePos) {
+        BlockState at = level.getBlockState(surfacePos);
+        BlockState fluidLayer = level.getBlockState(surfacePos.below());
+        BlockState basinBottom = level.getBlockState(surfacePos.below(2));
+        BlockState above = level.getBlockState(surfacePos.above());
         return (at.isAir() || canReplaceTerrain(at))
-                && canReplaceTerrain(below)
-                && below.isCollisionShapeFullBlock(level, pos.below())
+                && canReplaceTerrain(fluidLayer)
+                && fluidLayer.isCollisionShapeFullBlock(level, surfacePos.below())
+                && canReplaceTerrain(basinBottom)
+                && basinBottom.isCollisionShapeFullBlock(level, surfacePos.below(2))
                 && (above.isAir() || canReplaceTerrain(above))
-                && level.getFluidState(pos).isEmpty()
-                && level.getFluidState(pos.above()).isEmpty();
+                && level.getFluidState(surfacePos).isEmpty()
+                && level.getFluidState(surfacePos.below()).isEmpty()
+                && level.getFluidState(surfacePos.above()).isEmpty();
     }
 
     private static Set<BlockPos> largestConnectedComponent(Set<BlockPos> candidates) {
@@ -214,24 +214,21 @@ public final class MoltenPoolFeature extends Feature<NoneFeatureConfiguration> {
         return largest;
     }
 
-    private static boolean touchesExternalFluid(
-            WorldGenLevel level, Set<BlockPos> pool, Set<BlockPos> rim) {
-        for (BlockPos pos : pool) {
-            if (!level.getFluidState(pos).isEmpty()) {
+    private static boolean touchesExternalFluid(WorldGenLevel level, Set<BlockPos> pool) {
+        Set<BlockPos> fluidCells = new HashSet<>();
+        for (BlockPos surfacePos : pool) {
+            fluidCells.add(surfacePos.below());
+        }
+
+        for (BlockPos fluidPos : fluidCells) {
+            if (!level.getFluidState(fluidPos).isEmpty()) {
                 return true;
             }
             for (int[] offset : HORIZONTAL_NEIGHBORS) {
-                BlockPos neighbor = pos.offset(offset[0], 0, offset[1]);
-                if (!pool.contains(neighbor)
-                        && !rim.contains(neighbor)
-                        && !level.getFluidState(neighbor).isEmpty()) {
+                BlockPos neighbor = fluidPos.offset(offset[0], 0, offset[1]);
+                if (!fluidCells.contains(neighbor) && !level.getFluidState(neighbor).isEmpty()) {
                     return true;
                 }
-            }
-        }
-        for (BlockPos pos : rim) {
-            if (!level.getFluidState(pos).isEmpty()) {
-                return true;
             }
         }
         return false;
