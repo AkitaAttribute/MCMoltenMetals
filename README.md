@@ -12,7 +12,7 @@ NeoForge 1.21.1 mod that discovers metal materials at startup and registers pale
 - Registry entries are recreated every game startup from the discovered material list. Minecraft registries do not persist across launches, so the cache accelerates discovery rather than replacing registration.
 - Each discovered metal gets its own `Molten <Metal>` source fluid, flowing fluid, liquid block, and `Molten <Metal> Bucket` item.
 - Fluid mechanics inherit from Minecraft's `LavaFluid`. NeoForge-side movement, item movement, and source-conversion behavior delegate to the registered vanilla lava `FluidType` rather than using approximations.
-- The generated data pack adds the dynamic source/flowing fluids to `minecraft:lava`. Entity contact also falls back to Minecraft's own `Entity.lavaHurt()` when a molten-metal `FluidType` is detected but the vanilla lava tag has not been rebound yet, preserving normal lava fire/damage and fall-distance semantics.
+- The generated data pack adds the dynamic source/flowing fluids to `minecraft:lava`, making vanilla's own lava-contact path authoritative for entity damage, fire, and fall-distance behavior. A tag-reload check logs a warning if that binding is ever missing rather than applying a second custom contact-damage path.
 - Vanilla lava is an artwork/animation template, not the identity of the registered fluid. The current lava still/flow animation is palette-remapped from the selected metal artwork, normally the ingot.
 - The bucket is also generated: the current vanilla lava-bucket artwork is used as a shape/mask template while the contained lava pixels are palette-remapped to the metal.
 - Generated fluid sprites are placed in the block texture atlas; generated bucket artwork is placed in the item texture atlas.
@@ -25,9 +25,11 @@ NeoForge 1.21.1 mod that discovers metal materials at startup and registers pale
 
 The built-in worldgen module adds a **Molten Grotto** Nether biome intended to be separable into a future addon that depends on the molten-metal registry. It has no Fabricator or Mekanism dependency; TerraBlender is the required biome-integration library.
 
-- Pools use a custom feature that chooses one discovered molten metal per distinct pool. The full pool keeps that identity and generation rejects nearby fluids to avoid mixed molten shorelines.
-- The Lush Caves clay/pool idea is translated to Nether materials: pool basins and banks use soul sand, cave-vine/dripleaf-style vegetation is replaced by vanilla weeping and twisting vines, and glowstone fills the luminous ceiling-decoration role.
-- Pool placement is deliberately vertically sparse for Nether-scale generation: 12 attempts per chunk across Y 8-120 instead of Lush Caves' much denser full-height pool placement.
+- Pools use a custom feature that chooses one discovered molten metal per distinct connected pool.
+- Molten pools are small irregular 2-4 block-radius basins that adapt to uneven Nether cave floors rather than requiring a large perfectly flat ellipse. The generator reshapes/builds a soul-sand rim to contain the lava-like fluid and only rejects direct contact with an existing external fluid.
+- Each successful pool also spreads an irregular soul-sand/soul-soil ground patch around the basin, and some pools receive a hanging glowstone ceiling accent to strengthen the grotto appearance.
+- Pool placement uses 28 attempts per chunk across Y 8-120. The feature searches both upward and downward for the nearest valid cave floor, allowing attempts originating inside Nether terrain to resolve into nearby cavities.
+- Weeping/twisting vines replace the cave-vine/dripleaf vegetation role, while glowstone fills the luminous blossom role.
 - Normal Nether worlds use a TerraBlender `RegionType.NETHER` region. The region mirrors the five vanilla Nether climate anchors, defers four anchors back to vanilla, and maps the Soul Sand Valley anchor to Molten Grotto.
 - The Molten Grotto region uses TerraBlender's configured vanilla Nether region weight. With the default/equal weighting, Soul Sand Valley and Molten Grotto have equal region weight at the Soul Sand Valley climate anchor while remaining compatible with other TerraBlender Nether regions.
 - The biome is included in `minecraft:is_nether` and bastion eligibility so tag-aware Nether systems treat it as Nether terrain.
