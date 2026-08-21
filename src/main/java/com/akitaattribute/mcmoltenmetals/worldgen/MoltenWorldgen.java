@@ -10,8 +10,11 @@ import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import terrablender.api.Regions;
+import terrablender.core.TerraBlender;
 
 /**
  * Self-contained Nether worldgen integration.
@@ -36,6 +39,17 @@ public final class MoltenWorldgen {
 
     public static void register(IEventBus modBus) {
         FEATURES.register(modBus);
+        modBus.addListener(MoltenWorldgen::onCommonSetup);
         NeoForge.EVENT_BUS.addListener(MoltenNetherTestSpawn::onServerStarted);
+    }
+
+    private static void onCommonSetup(FMLCommonSetupEvent event) {
+        event.enqueueWork(() -> {
+            int vanillaNetherWeight = TerraBlender.CONFIG.vanillaNetherRegionWeight;
+            Regions.register(new MoltenNetherRegion(vanillaNetherWeight));
+            MCMoltenMetals.LOGGER.info(
+                    "Registered Molten Grotto TerraBlender Nether region with weight {}",
+                    vanillaNetherWeight);
+        });
     }
 }

@@ -23,13 +23,16 @@ NeoForge 1.21.1 mod that discovers metal materials at startup and registers pale
 
 ## Molten Grotto worldgen
 
-The built-in worldgen module adds a **Molten Grotto** Nether biome intended to be separable into a future addon that depends only on the molten-metal registry. It has no Fabricator or Mekanism dependency.
+The built-in worldgen module adds a **Molten Grotto** Nether biome intended to be separable into a future addon that depends on the molten-metal registry. It has no Fabricator or Mekanism dependency; TerraBlender is the required biome-integration library.
 
 - Pools use a custom feature that chooses one discovered molten metal per distinct pool. The full pool keeps that identity and generation rejects nearby fluids to avoid mixed molten shorelines.
 - The Lush Caves clay/pool idea is translated to Nether materials: pool basins and banks use soul sand, cave-vine/dripleaf-style vegetation is replaced by vanilla weeping and twisting vines, and glowstone fills the luminous ceiling-decoration role.
 - Pool placement is deliberately vertically sparse for Nether-scale generation: 12 attempts per chunk across Y 8-120 instead of Lush Caves' much denser full-height pool placement.
-- `Molten Nether Test` is exposed in the vanilla Create World world-type selector. Its logical overworld uses Nether terrain/dimension rules so a new test world starts directly in Nether terrain, while the biome source deliberately gives Molten Grotto several climate points so it is much easier to find during development.
-- The ordinary vanilla Nether preset is not overridden. Vanilla's `minecraft:nether` multi-noise preset is hardcoded, so production insertion at roughly Soul Sand Valley frequency is kept as a separate integration boundary rather than replacing `minecraft:normal` and creating broad worldgen compatibility problems.
+- Normal Nether worlds use a TerraBlender `RegionType.NETHER` region. The region mirrors the five vanilla Nether climate anchors, defers four anchors back to vanilla, and maps the Soul Sand Valley anchor to Molten Grotto.
+- The Molten Grotto region uses TerraBlender's configured vanilla Nether region weight. With the default/equal weighting, Soul Sand Valley and Molten Grotto have equal region weight at the Soul Sand Valley climate anchor while remaining compatible with other TerraBlender Nether regions.
+- The biome is included in `minecraft:is_nether` and bastion eligibility so tag-aware Nether systems treat it as Nether terrain.
+- `Molten Nether Test` remains exposed in the vanilla Create World world-type selector. Its logical overworld uses Nether terrain/dimension rules so a new test world starts directly in Nether terrain, while its direct biome source deliberately gives Molten Grotto several climate points so it is much easier to find during development.
+- The ordinary vanilla Nether preset is not overridden; TerraBlender performs the production insertion instead of replacing `minecraft:normal` or `minecraft:nether`.
 
 ## Optional Mekanism integration
 

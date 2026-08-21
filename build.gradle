@@ -16,6 +16,7 @@ repositories {
     mavenCentral()
     maven { url = 'https://maven.blamejared.com/' }
     maven { url = 'https://modmaven.dev/' }
+    maven { url = 'https://maven.minecraftforge.net/' }
 }
 
 neoForge {
@@ -29,6 +30,10 @@ dependencies {
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
     localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 
+    // TerraBlender is the production Nether-biome integration layer. It allows Molten Grotto
+    // to participate in the normal Nether climate source without replacing the vanilla preset.
+    implementation "com.github.glitchfiend:TerraBlender-neoforge:${minecraft_version}-${terrablender_version}"
+
     // Full Mekanism is compile-only because the optional machine integration uses Mekanism's
     // native tile/configuration classes. Runtime loading is gated behind a ModList check.
     compileOnly "mekanism:Mekanism:${mekanism_version}"
@@ -41,6 +46,7 @@ processResources {
             neo_version: neo_version,
             neo_version_range: neo_version_range,
             loader_version_range: loader_version_range,
+            terrablender_version: terrablender_version,
             mod_id: mod_id,
             mod_name: mod_name,
             mod_license: mod_license,
