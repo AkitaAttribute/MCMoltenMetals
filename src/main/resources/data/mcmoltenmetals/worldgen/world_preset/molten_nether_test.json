@@ -1,0 +1,230 @@
+{
+  "dimensions": {
+    "minecraft:overworld": {
+      "type": "mcmoltenmetals:molten_nether_test",
+      "generator": {
+        "type": "minecraft:noise",
+        "biome_source": {
+          "type": "minecraft:multi_noise",
+          "biomes": [
+            {
+              "biome": "minecraft:nether_wastes",
+              "parameters": {
+                "temperature": 0.0,
+                "humidity": 0.0,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.0
+              }
+            },
+            {
+              "biome": "minecraft:soul_sand_valley",
+              "parameters": {
+                "temperature": 0.0,
+                "humidity": -0.5,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.0
+              }
+            },
+            {
+              "biome": "minecraft:crimson_forest",
+              "parameters": {
+                "temperature": 0.4,
+                "humidity": 0.0,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.0
+              }
+            },
+            {
+              "biome": "minecraft:warped_forest",
+              "parameters": {
+                "temperature": 0.0,
+                "humidity": 0.5,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.375
+              }
+            },
+            {
+              "biome": "minecraft:basalt_deltas",
+              "parameters": {
+                "temperature": -0.5,
+                "humidity": 0.0,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.175
+              }
+            },
+            {
+              "biome": "mcmoltenmetals:molten_grotto",
+              "parameters": {
+                "temperature": 0.2,
+                "humidity": -0.25,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.05
+              }
+            },
+            {
+              "biome": "mcmoltenmetals:molten_grotto",
+              "parameters": {
+                "temperature": -0.2,
+                "humidity": -0.25,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.05
+              }
+            },
+            {
+              "biome": "mcmoltenmetals:molten_grotto",
+              "parameters": {
+                "temperature": 0.2,
+                "humidity": 0.25,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.12
+              }
+            }
+          ]
+        },
+        "settings": "minecraft:nether"
+      }
+    },
+    "minecraft:the_nether": {
+      "type": "minecraft:the_nether",
+      "generator": {
+        "type": "minecraft:noise",
+        "biome_source": {
+          "type": "minecraft:multi_noise",
+          "biomes": [
+            {
+              "biome": "minecraft:nether_wastes",
+              "parameters": {
+                "temperature": 0.0,
+                "humidity": 0.0,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.0
+              }
+            },
+            {
+              "biome": "minecraft:soul_sand_valley",
+              "parameters": {
+                "temperature": 0.0,
+                "humidity": -0.5,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.0
+              }
+            },
+            {
+              "biome": "minecraft:crimson_forest",
+              "parameters": {
+                "temperature": 0.4,
+                "humidity": 0.0,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.0
+              }
+            },
+            {
+              "biome": "minecraft:warped_forest",
+              "parameters": {
+                "temperature": 0.0,
+                "humidity": 0.5,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.375
+              }
+            },
+            {
+              "biome": "minecraft:basalt_deltas",
+              "parameters": {
+                "temperature": -0.5,
+                "humidity": 0.0,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.175
+              }
+            },
+            {
+              "biome": "mcmoltenmetals:molten_grotto",
+              "parameters": {
+                "temperature": 0.2,
+                "humidity": -0.25,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.05
+              }
+            },
+            {
+              "biome": "mcmoltenmetals:molten_grotto",
+              "parameters": {
+                "temperature": -0.2,
+                "humidity": -0.25,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.05
+              }
+            },
+            {
+              "biome": "mcmoltenmetals:molten_grotto",
+              "parameters": {
+                "temperature": 0.2,
+                "humidity": 0.25,
+                "continentalness": 0.0,
+                "erosion": 0.0,
+                "depth": 0.0,
+                "weirdness": 0.0,
+                "offset": 0.12
+              }
+            }
+          ]
+        },
+        "settings": "minecraft:nether"
+      }
+    },
+    "minecraft:the_end": {
+      "type": "minecraft:the_end",
+      "generator": {
+        "type": "minecraft:noise",
+        "biome_source": {
+          "type": "minecraft:the_end"
+        },
+        "settings": "minecraft:end"
+      }
+    }
+  }
+}
